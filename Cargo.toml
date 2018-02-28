@@ -1,0 +1,7 @@
+[package]
+name = "h264split"
+version = "0.1.0"
+authors = ["ConcurrentMarxistGC <concurrentmarxistgc@users.noreply.github.com>"]
+
+[dependencies]
+lazy_static="*"
