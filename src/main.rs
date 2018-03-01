@@ -53,7 +53,7 @@ fn main() {
 			.args(vec!["-h", "720"]) // Height
 			.args(vec!["-fps", "30"]) // Framerate
 			.args(vec!["-a", "4"]) // Output time
-			.args(vec!["-a", &format!("Device: {} | %F %X %z", env::var("HOSTNAME").unwrap_or("unknown".to_string()))]) // Supplementary argument
+			.args(vec!["-a", &format!("Device: {} | %F %X %z", env::var("HOSTNAME").unwrap_or("unknown".to_string()))]) // Supplementary argument hmm rn it requires an additional `export` command
 			.stdin(process::Stdio::null())
 			.stdout(process::Stdio::piped())
 			.spawn() { child } else { process::exit(1); };
