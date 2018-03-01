@@ -127,54 +127,37 @@ fn new_unit_event(frame: Vec<u8>) {
 			{
 				let mut ffmpeg_stdin = if let Some(out) = child.stdin.take() { out } else {
 					let _ = child.kill();
-					panic!("Failed to open STDIN of ffmpeg for converting.");
 				};
 
-				println!("FFmpeg's STDIN attached.");
 				{
-					println!("Attempting to gain exclusive access to all the NAL units...");
 					let mut units = H264_NAL_UNITS.lock().unwrap();
 
-					println!("Attempting write of picture parameter...");
 					let _ = ffmpeg_stdin.write(&H264_NAL_PIC_PARAM.read().unwrap().0[..]);
-					println!("Attempting write of sequence parameter...");
 					let _ = ffmpeg_stdin.write(&H264_NAL_SEQ_PARAM.read().unwrap().0[..]);
 
-					println!("Attempting write of all frames parameter...");
 					for i in 0..units.len() {
 						let _ = ffmpeg_stdin.write(&units[i][..]);
 					}
-					println!("Cleaning out encoded frames...");
 					units.clear();
 
-					println!("Inserting current reference frame...");
 					units.push(frame);
 				}
-				println!("FFmpeg's STDIN is dropped!");
 			}
 
 			{
-				println!("Attempting to attach FFmpeg's STDOUT...");
 				if let Some(mut ffmpeg_stdout) = child.stdout.take() {
 					let mut serve_buffer = MP4_SERVE_BUFFER.write().unwrap();
 					serve_buffer.clear();
 
 					let mut buffer = [0u8; 8192];
 
-					println!("Attempting to read mp4 into memory...");
 					while let Ok(count) = ffmpeg_stdout.read(&mut buffer) {
 						if count <= 0 { break; }
 
 						serve_buffer.extend(&buffer[..count]);
 					}
-					println!("Read complete.");
 				}
-				if let Ok(Some(_)) = child.try_wait() {
-					// go on with your merry life kthxbye
-				} else {
-					let _ = child.kill();
-				}
-				println!("Process killed / exited, going back to reading raspivid.");
+				let _ = child.wait();
 			}
 		}
 		7 => H264_NAL_PIC_PARAM.write().unwrap().0 = frame,
