@@ -142,9 +142,16 @@ fn new_unit_event(frame: Vec<u8>) {
 			}
 
 			{
-				let mut serve_buffer = MP4_SERVE_BUFFER.write().unwrap();
-				serve_buffer.clear();
-				serve_buffer.extend(child.wait_with_output().unwrap().stdout)
+				if let Some(mut stdout) = child.stdout.take() {
+					let mut serve_buffer = MP4_SERVE_BUFFER.write().unwrap();
+					serve_buffer.clear();
+					let _ = stdout.read_to_end(&mut *serve_buffer);
+				}
+				if let Ok(Some(_)) = child.try_wait() {
+					// go on with your merry life kthxbye
+				} else {
+					let _ = child.kill();
+				}
 			}
 		}
 		7 => H264_NAL_PIC_PARAM.write().unwrap().0 = frame,
