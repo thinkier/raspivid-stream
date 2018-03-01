@@ -111,7 +111,7 @@ fn new_unit_event(frame: Vec<u8>) {
 	match get_unit_type(&frame) {
 		1 => H264_NAL_UNITS.lock().unwrap().push(frame),
 		5 => {
-			if { H264_NAL_UNITS.lock().unwrap().len() < 30 } {
+			if { H264_NAL_UNITS.lock().unwrap().len() < 150} {
 				H264_NAL_UNITS.lock().unwrap().push(frame);
 				return;
 			}
