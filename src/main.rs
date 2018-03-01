@@ -2,8 +2,9 @@
 extern crate lazy_static;
 extern crate iron;
 
+use iron::headers;
 use iron::prelude::*;
-use iron::{headers, status};
+use iron::status::{self, Status};
 use std::env;
 use std::io::{Read, Write};
 use std::process::{self, Command};
@@ -25,6 +26,7 @@ fn main() {
 			"stream.mp4" => {
 				// Serve the MP4 in memory
 				let mut response = Response::new();
+				response.status = Some(Status::Ok);
 				response.headers.set(headers::ContentType("video/mp4".parse().unwrap()));
 
 				{
@@ -111,7 +113,7 @@ fn new_unit_event(frame: Vec<u8>) {
 	match get_unit_type(&frame) {
 		1 => H264_NAL_UNITS.lock().unwrap().push(frame),
 		5 => {
-			if { H264_NAL_UNITS.lock().unwrap().len() < 150} {
+			if { H264_NAL_UNITS.lock().unwrap().len() < 150 } {
 				H264_NAL_UNITS.lock().unwrap().push(frame);
 				return;
 			}
