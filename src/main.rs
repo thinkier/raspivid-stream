@@ -129,19 +129,17 @@ fn new_unit_event(frame: Vec<u8>) {
 					let _ = child.kill();
 				};
 
-				{
-					let mut units = H264_NAL_UNITS.lock().unwrap();
+				let mut units = H264_NAL_UNITS.lock().unwrap();
 
-					let _ = ffmpeg_stdin.write(&H264_NAL_PIC_PARAM.read().unwrap().0[..]);
-					let _ = ffmpeg_stdin.write(&H264_NAL_SEQ_PARAM.read().unwrap().0[..]);
+				let _ = ffmpeg_stdin.write(&H264_NAL_PIC_PARAM.read().unwrap().0[..]);
+				let _ = ffmpeg_stdin.write(&H264_NAL_SEQ_PARAM.read().unwrap().0[..]);
 
-					for i in 0..units.len() {
-						let _ = ffmpeg_stdin.write(&units[i][..]);
-					}
-					units.clear();
-
-					units.push(frame);
+				for i in 0..units.len() {
+					let _ = ffmpeg_stdin.write(&units[i][..]);
 				}
+				units.clear();
+
+				units.push(frame);
 			}
 
 			{
