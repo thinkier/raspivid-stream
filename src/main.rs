@@ -1,5 +1,8 @@
 #[macro_use]
+extern crate log;
+#[macro_use]
 extern crate lazy_static;
+extern crate env_logger;
 extern crate iron;
 
 use iron::{headers, status};
@@ -20,14 +23,18 @@ lazy_static! {
 }
 
 fn main() {
+	env_logger::init();
+
 	thread::spawn(|| {
 		Iron::new(|req: &mut Request| Ok(match req.url.path().pop().unwrap_or("index.html") {
 			"stream.mp4" => {
 				// Serve the MP4 in memory
 				let mp4_buffer = MP4_SERVE_BUFFER.read().unwrap();
+				debug!("Buffer len: {}", mp4_buffer.len());
 				let mut response = Response::with((status::Ok, mp4_buffer.clone()));
 				response.headers.set(headers::ContentType("video/mp4".parse().unwrap()));
 
+				info!("[{}]: stream.mp4", req.remote_addr);
 				response
 			}
 			_ => {
@@ -36,6 +43,7 @@ fn main() {
 	<script type='text/javascript'>var stream = document.getElementById('stream');stream.removeAttribute('controls');stream.addEventListener('ended',reloadStream,false);function reloadStream(e){window.location.reload(false);}</script></body></html>"));
 				response.headers.set(headers::ContentType::html());
 
+				info!("[{}]: normal looper", req.remote_addr);
 				response
 			}
 		})).http("0.0.0.0:3128").unwrap();
