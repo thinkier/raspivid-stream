@@ -9,6 +9,7 @@ use std::io::{Read, Write};
 use std::process::{self, Command};
 use std::sync::{Mutex, RwLock};
 use std::thread;
+use std::time::Duration;
 
 struct Singleton<T>(T);
 
@@ -53,7 +54,10 @@ fn main() {
 			.args(vec!["-a", &format!("Device: {} | %F %X %z", env::var("HOSTNAME").unwrap_or("unknown".to_string()))]) // Supplementary argument
 			.spawn() { child } else { process::exit(1); };
 
-		let mut child_stdout = child.stdout.take().unwrap();
+		thread::sleep(Duration::from_millis(100)); // The output stream takes time to initialize :thonk:
+
+		let mut child_stdout = child.stdout.take().unwrap_or_else(|| panic!("Failed to attach to raspivid's STDOUT"));
+
 		while let Ok(None) = child.try_wait() {
 			split_stream(&mut child_stdout);
 		}
