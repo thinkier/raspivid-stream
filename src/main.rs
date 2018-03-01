@@ -127,6 +127,7 @@ fn new_unit_event(frame: Vec<u8>) {
 			{
 				let mut ffmpeg_stdin = if let Some(out) = child.stdin.take() { out } else {
 					let _ = child.kill();
+					panic!("Failed to open STDIN of ffmpeg for converting.");
 				};
 
 				let mut units = H264_NAL_UNITS.lock().unwrap();
