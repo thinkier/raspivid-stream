@@ -125,16 +125,16 @@ fn new_unit_event(frame: Vec<u8>) {
 				.stdout(process::Stdio::piped())
 				.spawn() { child } else { return; };
 
-			let mut ffmpeg = if let Some(out) = child.stdin.take() { out } else { return; };
+			let mut ffmpeg_stdin = if let Some(out) = child.stdin.take() { out } else { return; };
 
 			{
 				let mut units = H264_NAL_UNITS.lock().unwrap();
 
-				let _ = ffmpeg.write(&H264_NAL_PIC_PARAM.read().unwrap().0[..]);
-				let _ = ffmpeg.write(&H264_NAL_SEQ_PARAM.read().unwrap().0[..]);
+				let _ = ffmpeg_stdin.write(&H264_NAL_PIC_PARAM.read().unwrap().0[..]);
+				let _ = ffmpeg_stdin.write(&H264_NAL_SEQ_PARAM.read().unwrap().0[..]);
 
 				for i in 0..units.len() {
-					let _ = ffmpeg.write(&units[i][..]);
+					let _ = ffmpeg_stdin.write(&units[i][..]);
 				}
 				units.clear();
 
@@ -142,23 +142,26 @@ fn new_unit_event(frame: Vec<u8>) {
 			}
 
 			{
-				if let Some(mut stdout) = child.stdout.take() {
+				if let Some(mut ffmpeg_stdout) = child.stdout.take() {
 					let mut serve_buffer = MP4_SERVE_BUFFER.write().unwrap();
 					serve_buffer.clear();
 
 					let mut buffer = [0u8; 8192];
 
-					while let Ok(count) = stdout.read(&mut buffer) {
+					while let Ok(count) = ffmpeg_stdout.read(&mut buffer) {
 						if count <= 0 { break; }
 
+						println!("Reading from FFMpeg");
 						serve_buffer.extend(&buffer[..count]);
 					}
+					println!("Finished reading from FFMpeg");
 				}
 				if let Ok(Some(_)) = child.try_wait() {
 					// go on with your merry life kthxbye
 				} else {
 					let _ = child.kill();
 				}
+				println!("FFMpeg exited");
 			}
 		}
 		7 => H264_NAL_PIC_PARAM.write().unwrap().0 = frame,
