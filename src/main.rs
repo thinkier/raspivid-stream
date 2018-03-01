@@ -56,7 +56,10 @@ fn main() {
 
 		thread::sleep(Duration::from_millis(100)); // The output stream takes time to initialize :thonk:
 
-		let mut child_stdout = child.stdout.take().unwrap_or_else(|| panic!("Failed to attach to raspivid's STDOUT"));
+		let mut child_stdout = child.stdout.take().unwrap_or_else(|| {
+			let _ = child.kill();
+			panic!("Failed to attach to raspivid's STDOUT")
+		});
 
 		while let Ok(None) = child.try_wait() {
 			split_stream(&mut child_stdout);
