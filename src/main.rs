@@ -52,6 +52,7 @@ fn main() {
 			.args(vec!["-w", "1280"]) // Width
 			.args(vec!["-h", "720"]) // Height
 			.args(vec!["-fps", "30"]) // Framerate
+			.args(vec!["-t", "7200000"]) // Stay on for a 2 hours instead of quickly exiting
 			.args(vec!["-a", "4"]) // Output time
 			.args(vec!["-a", &format!("Device: {} | %F %X %z", env::var("HOSTNAME").unwrap_or("unknown".to_string()))]) // Supplementary argument hmm rn it requires an additional `export` command
 			.stdin(process::Stdio::null())
