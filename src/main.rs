@@ -147,19 +147,10 @@ fn new_unit_event(frame: Vec<u8>) {
 			}
 
 			{
-				if let Some(mut ffmpeg_stdout) = child.stdout.take() {
-					let mut serve_buffer = MP4_SERVE_BUFFER.write().unwrap();
-					serve_buffer.clear();
+				let mut serve_buffer = MP4_SERVE_BUFFER.write().unwrap();
+				serve_buffer.clear();
 
-					let mut buffer = [0u8; 8192];
-
-					while let Ok(count) = ffmpeg_stdout.read(&mut buffer) {
-						if count <= 0 { break; }
-
-						serve_buffer.extend(&buffer[..count]);
-					}
-				}
-				let _ = child.wait();
+				serve_buffer.extend(child.wait_with_output().unwrap().stdout);
 			}
 		}
 		7 => H264_NAL_PIC_PARAM.write().unwrap().0 = frame,
