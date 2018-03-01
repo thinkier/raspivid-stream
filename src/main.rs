@@ -1,15 +1,18 @@
 #[macro_use]
 extern crate lazy_static;
 
-use std::io::{self, Read};
+use std::env;
+use std::io::{self, Read, Write};
+use std::process::Command;
 use std::sync::{Mutex, RwLock};
 
 struct Singleton<T>(T);
 
 lazy_static! {
-	static ref UNITS: Mutex<Vec<Vec<u8>>> = Mutex::new(vec![]);
-	static ref PIC_PARAM: RwLock<Singleton<Vec<u8>>> = RwLock::new(Singleton(vec![]));
-	static ref SEQ_PARAM: RwLock<Singleton<Vec<u8>>> = RwLock::new(Singleton(vec![]));
+	static ref H264_NAL_UNITS: Mutex<Vec<Vec<u8>>> = Mutex::new(vec![]);
+	static ref H264_NAL_PIC_PARAM: RwLock<Singleton<Vec<u8>>> = RwLock::new(Singleton(vec![]));
+	static ref H264_NAL_SEQ_PARAM: RwLock<Singleton<Vec<u8>>> = RwLock::new(Singleton(vec![]));
+	static ref MP4_SERVE_BUFFER: RwLock<Vec<u8>> = RwLock::new(vec![]);
 }
 
 fn main() {
@@ -51,13 +54,40 @@ fn main() {
 
 fn new_unit_event(frame: Vec<u8>) {
 	match get_unit_type(&frame) {
-		1 => UNITS.lock().unwrap().push(frame),
+		1 => H264_NAL_UNITS.lock().unwrap().push(frame),
 		5 => {
-			// todo Flush
-			UNITS.lock().unwrap().push(frame);
+			let child = if let Ok(child) = Command::new("ffmpeg")
+				.args(vec!["-loglevel", "quiet"]) // Don't output any crap that is not the actual output of the stream
+				.args(vec!["-i", "-"]) // Bind to STDIN
+				.args(vec!["-c:v", "copy"]) // Copy video only
+				.args(vec!["-f", "mp4"]) // Output as mp4
+				.arg("pipe:1") // Output to stdout
+				.spawn() { child } else { return; };
+
+			let mut ffmpeg = if let Some(out) = child.stdin { out } else { return; };
+
+			{
+				let mut units = H264_NAL_UNITS.lock().unwrap();
+
+				let _ = ffmpeg.write(&H264_NAL_PIC_PARAM.read().unwrap().0[..]);
+				let _ = ffmpeg.write(&H264_NAL_SEQ_PARAM.read().unwrap().0[..]);
+
+				for i in 0..units.len() {
+					let _ = ffmpeg.write(&units[i][..]);
+				}
+				units.clear();
+
+				units.push(frame);
+			}
+
+			{
+				if let Some(mut output) = child.stdout {
+					let _ = output.read_to_end(&mut MP4_SERVE_BUFFER.write().unwrap());
+				}
+			}
 		}
-		7 => PIC_PARAM.write().unwrap().0 = frame,
-		8 => SEQ_PARAM.write().unwrap().0 = frame,
+		7 => H264_NAL_PIC_PARAM.write().unwrap().0 = frame,
+		8 => H264_NAL_SEQ_PARAM.write().unwrap().0 = frame,
 		_ => return // Ignore lol
 	}
 }
