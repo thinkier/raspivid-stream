@@ -9,7 +9,6 @@ use std::io::{Read, Write};
 use std::process::{self, Command};
 use std::sync::{Mutex, RwLock};
 use std::thread;
-use std::time::Duration;
 
 struct Singleton<T>(T);
 
@@ -52,9 +51,8 @@ fn main() {
 			.args(vec!["-fps", "30"]) // Framerate
 			.args(vec!["-a", "4"]) // Output time
 			.args(vec!["-a", &format!("Device: {} | %F %X %z", env::var("HOSTNAME").unwrap_or("unknown".to_string()))]) // Supplementary argument
+			.stdout(process::Stdio::piped())
 			.spawn() { child } else { process::exit(1); };
-
-		thread::sleep(Duration::from_millis(100)); // The output stream takes time to initialize :thonk:
 
 		let mut child_stdout = child.stdout.take().unwrap_or_else(|| {
 			let _ = child.kill();
@@ -114,6 +112,8 @@ fn new_unit_event(frame: Vec<u8>) {
 				.args(vec!["-c:v", "copy"]) // Copy video only
 				.args(vec!["-f", "mp4"]) // Output as mp4
 				.arg("pipe:1") // Output to stdout
+				.stdin(process::Stdio::piped())
+				.stdout(process::Stdio::piped())
 				.spawn() { child } else { return; };
 
 			let mut ffmpeg = if let Some(out) = child.stdin.take() { out } else { return; };
