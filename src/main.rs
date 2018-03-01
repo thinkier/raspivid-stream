@@ -51,6 +51,7 @@ fn main() {
 			.args(vec!["-fps", "30"]) // Framerate
 			.args(vec!["-a", "4"]) // Output time
 			.args(vec!["-a", &format!("Device: {} | %F %X %z", env::var("HOSTNAME").unwrap_or("unknown".to_string()))]) // Supplementary argument
+			.stdin(process::Stdio::null())
 			.stdout(process::Stdio::piped())
 			.spawn() { child } else { process::exit(1); };
 
