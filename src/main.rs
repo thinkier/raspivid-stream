@@ -110,6 +110,11 @@ fn new_unit_event(frame: Vec<u8>) {
 	match get_unit_type(&frame) {
 		1 => H264_NAL_UNITS.lock().unwrap().push(frame),
 		5 => {
+			if { H264_NAL_UNITS.lock().unwrap().len() < 30 } {
+				H264_NAL_UNITS.lock().unwrap().push(frame);
+				return;
+			}
+
 			let mut child = if let Ok(child) = Command::new("ffmpeg")
 				.args(vec!["-loglevel", "quiet"]) // Don't output any crap that is not the actual output of the stream
 				.args(vec!["-i", "-"]) // Bind to STDIN
