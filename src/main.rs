@@ -2,9 +2,8 @@
 extern crate lazy_static;
 extern crate iron;
 
-use iron::headers;
+use iron::{headers, status};
 use iron::prelude::*;
-use iron::status::{self, Status};
 use std::env;
 use std::io::{Read, Write};
 use std::process::{self, Command};
@@ -25,16 +24,9 @@ fn main() {
 		Iron::new(|req: &mut Request| Ok(match req.url.path().pop().unwrap_or("index.html") {
 			"stream.mp4" => {
 				// Serve the MP4 in memory
-				let mut response = Response::new();
-				response.status = Some(Status::Ok);
+				let mp4_buffer = MP4_SERVE_BUFFER.read().unwrap();
+				let mut response = Response::with((status::Ok, mp4_buffer.clone()));
 				response.headers.set(headers::ContentType("video/mp4".parse().unwrap()));
-
-				{
-					let mp4_buffer = MP4_SERVE_BUFFER.read().unwrap();
-					response.headers.set(headers::ContentLength(mp4_buffer.len() as u64));
-
-					response.body = Some(Box::new(mp4_buffer.clone()));
-				}
 
 				response
 			}
