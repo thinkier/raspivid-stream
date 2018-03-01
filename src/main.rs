@@ -149,9 +149,9 @@ fn new_unit_event(frame: Vec<u8>) {
 					let mut buffer = [0u8; 8192];
 
 					while let Ok(count) = stdout.read(&mut buffer) {
-						serve_buffer.extend(&buffer[..count]);
-
 						if count <= 0 { break; }
+
+						serve_buffer.extend(&buffer[..count]);
 					}
 				}
 				if let Ok(Some(_)) = child.try_wait() {
