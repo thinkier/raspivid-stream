@@ -195,7 +195,11 @@ impl FFMpeg {
 		let mut stdin = self.process.stdin.take().expect("Failed to open STDIN of FFMpeg");
 
 		let _ = stdin.write_all(&mut buf[..]);
-		swap(&mut self.process.stdin, &mut Some(stdin)); // Inject it back into self.process
+
+		{
+			let mut opt_stdin = Some(stdin);
+			swap(&mut self.process.stdin, &mut opt_stdin); // Inject it back into self.process
+		}
 
 		self.nal_units += 1;
 	}
