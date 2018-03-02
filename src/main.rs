@@ -38,7 +38,7 @@ fn main() {
 	thread::spawn(|| {
 		let mut iron = Iron::new(|req: &mut Request| Ok(match req.url.path().pop().unwrap_or("") {
 			"stream.mp4" => {
-				let mut response = Response::with((status::TemporaryRedirect));
+				let mut response = Response::with(status::TemporaryRedirect);
 				response.headers.set(headers::Location(format!("/stream{}.mp4", STREAM_FILE_COUNTER.read().unwrap().0)));
 
 				response
