@@ -12,7 +12,7 @@ use std::env;
 use std::fs::{self, File};
 use std::io::{BufWriter, Read, Write};
 use std::process::{self, Command};
-use std::sync::{Mutex, RwLock};
+use std::sync::RwLock;
 use std::thread;
 
 const STREAM_TMP_DIR: &'static str = "/tmp/raspivid-stream";
@@ -22,7 +22,6 @@ struct Singleton<T>(T);
 
 lazy_static! {
 	// All H264 stuff can be moved into a reference passed around with new frame events
-	static ref H264_NAL_UNITS: Mutex<Vec<u8>> = Mutex::new(vec![]);
 	static ref H264_NAL_PIC_PARAM: RwLock<Singleton<Vec<u8>>> = RwLock::new(Singleton(vec![]));
 	static ref H264_NAL_SEQ_PARAM: RwLock<Singleton<Vec<u8>>> = RwLock::new(Singleton(vec![]));
 	static ref STREAM_FILE_LOCK: RwLock<bool> = RwLock::new(false);
@@ -58,6 +57,8 @@ fn main() {
 		iron.threads = 2usize;
 		iron.http("0.0.0.0:3128").unwrap();
 	});
+
+	let mut units = vec![];
 	loop {
 		let mut child = if let Ok(child) = Command::new("raspivid")
 			.args(vec!["-o", "-"]) // Output to STDOUT
@@ -65,6 +66,7 @@ fn main() {
 			.args(vec!["-h", "720"]) // Height
 			.args(vec!["-fps", &format!("{}", FRAMERATE)]) // Framerate
 			.args(vec!["-t", "7200000"]) // Stay on for a 2 hours instead of quickly exiting
+			.args(vec!["-r", "90"]) // Rotate 90 degrees as the device is sitting sideways.
 			.args(vec!["-a", "4"]) // Output time
 			.args(vec!["-a", &format!("Device: {} | %F %X %z", env::var("HOSTNAME").unwrap_or("unknown".to_string()))]) // Supplementary argument hmm rn it requires an additional `export` command
 			.stdin(process::Stdio::null())
@@ -77,12 +79,12 @@ fn main() {
 		});
 
 		while let Ok(None) = child.try_wait() {
-			split_stream(&mut child_stdout);
+			split_stream(&mut child_stdout, &mut units);
 		}
 	}
 }
 
-fn split_stream<R: Read>(input_stream: &mut R) {
+fn split_stream<R: Read>(input_stream: &mut R, units: &mut Vec<u8>) {
 	let mut nulls: usize = 0;
 	let mut nal_unit: Vec<u8> = vec![];
 	let mut buffer = [0u8; 8192];
@@ -107,7 +109,7 @@ fn split_stream<R: Read>(input_stream: &mut R) {
 						nulls - i
 					};
 					if nal_unit.len() > 0 {
-						new_unit_event(nal_unit);
+						new_unit_event(nal_unit, &mut units);
 						nal_unit = vec![0; null_pads];
 					}
 				}
@@ -119,17 +121,14 @@ fn split_stream<R: Read>(input_stream: &mut R) {
 	}
 }
 
-fn new_unit_event(frame: Vec<u8>) {
+fn new_unit_event(frame: Vec<u8>, units: &mut Vec<u8>) {
 	let unit_type = get_unit_type(&frame);
 	debug!("New NAL unit: type={}", unit_type);
 	match unit_type {
 		5 => {
-			{
-				let mut units = H264_NAL_UNITS.lock().unwrap();
-				if units.len() < 65535 { // Minimum 64kb h264 buffer
-					units.extend(frame);
-					return;
-				}
+			if units.len() < 65535 { // Minimum 64kb h264 buffer
+				units.extend(frame);
+				return;
 			}
 
 			let mut child = if let Ok(child) = Command::new("ffmpeg")
@@ -151,7 +150,6 @@ fn new_unit_event(frame: Vec<u8>) {
 				let _ = ffmpeg_stdin.write(&H264_NAL_SEQ_PARAM.read().unwrap().0[..]);
 
 				debug!("Streaming into ffmpeg's stdin...");
-				let mut units = H264_NAL_UNITS.lock().unwrap();
 				let _ = ffmpeg_stdin.write(&units[..]);
 
 				units.clear();
@@ -170,7 +168,7 @@ fn new_unit_event(frame: Vec<u8>) {
 		}
 		7 => H264_NAL_PIC_PARAM.write().unwrap().0 = frame,
 		8 => H264_NAL_SEQ_PARAM.write().unwrap().0 = frame,
-		_ => H264_NAL_UNITS.lock().unwrap().extend(frame)
+		_ => units.extend(frame)
 	}
 }
 
