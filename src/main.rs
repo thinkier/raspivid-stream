@@ -48,6 +48,7 @@ fn main() {
 					var streamer = document.getElementById('streamer');
 					var num = streamer.begin + 0;
 					streamer.onended = function(){
+						console.log(\"Fetching new video to play...\");
 	    				streamer.src = \"/stream\" + (++num) + \".mp4\";
 					}
 				"))
