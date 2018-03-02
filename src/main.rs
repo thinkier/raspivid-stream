@@ -50,13 +50,13 @@ fn main() {
 				stream.removeAttribute('controls');\
 				stream.addEventListener('ended',continueStream,true);\
 				function continueStream(e){\
-					stream.innerHTML = '<source src='/stream'+ (num++) +'.mp4'/>'
+					stream.src = '/stream' + (++num) +'.mp4';
 				}"))
 			}
 			"" => {
 				// Serve the script with html
 				let num = STREAM_FILE_COUNTER.read().unwrap().0;
-				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><video id='stream' width='1280' height='720' begin='{}' autoplay><source src='/stream{}.mp4'/></video>{}</body></html>", num, num, "<script type='text/javascript' src='/script.js'/>")));
+				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><video id='stream' width='1280' height='720' begin='{}' autoplay src='/stream{}.mp4'/>{}</body></html>", num, num, "<script type='text/javascript' src='/script.js'/>")));
 				response.headers.set(headers::ContentType::html());
 
 				info!("[{}]: normal looper", req.remote_addr);
