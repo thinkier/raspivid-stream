@@ -45,14 +45,15 @@ fn main() {
 			}
 			"script.js" => {
 				Response::with((status::Ok, "
-				var num = document.getElementById('stream').begin;
-				var stream = document.getElementById('stream');
-				stream.removeAttribute('controls');
-				stream.addEventListener('ended', continueStream, true);
-				function continueStream(e) {
-					num++;
-					stream.innerHTML += '<source src=\\'/stream' + num + '.mp4\\'/>';
-				}"))
+					var num = document.getElementById('stream').begin;
+					var stream = document.getElementById('stream');
+					stream.removeAttribute('controls');
+					stream.addEventListener('ended', continueStream, true);
+					function continueStream(e) {
+						num++;
+						stream.innerHTML += '<source src=\\'/stream' + num + '.mp4\\'/>';
+					}\
+				"))
 			}
 			"" => {
 				// Serve the script with html
