@@ -119,8 +119,9 @@ fn split_stream<R: Read>(input_stream: &mut R) {
 }
 
 fn new_unit_event(frame: Vec<u8>) {
-	match get_unit_type(&frame) {
-		1 => H264_NAL_UNITS.lock().unwrap().push(frame),
+	let unit_type = get_unit_type(&frame);
+	debug!("New NAL unit: type={}", unit_type);
+	match unit_type {
 		5 => {
 			if { H264_NAL_UNITS.lock().unwrap().len() < FRAMERATE } {
 				H264_NAL_UNITS.lock().unwrap().push(frame);
@@ -164,7 +165,7 @@ fn new_unit_event(frame: Vec<u8>) {
 		}
 		7 => H264_NAL_PIC_PARAM.write().unwrap().0 = frame,
 		8 => H264_NAL_SEQ_PARAM.write().unwrap().0 = frame,
-		_ => return // Ignore lol
+		_ => H264_NAL_UNITS.lock().unwrap().push(frame)
 	}
 }
 
