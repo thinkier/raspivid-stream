@@ -90,10 +90,9 @@ fn split_stream<R: Read>(input_stream: &mut R, mut units: &mut Vec<u8>) {
 	let mut nal_unit: Vec<u8> = vec![];
 	let mut buffer = [0u8; 8192];
 
-	while let Ok(count) = input_stream.read(&mut buffer) {
-		if count <= 0 { break; }
+	while let Ok(_) = input_stream.read_exact(&mut buffer) {
 		let mut begin = 0;
-		for i in 0..count {
+		for i in 0..8192 {
 			if buffer[i] == 0x00 {
 				nulls += 1;
 			} else {
@@ -118,7 +117,7 @@ fn split_stream<R: Read>(input_stream: &mut R, mut units: &mut Vec<u8>) {
 			}
 		}
 
-		nal_unit.extend_from_slice(&buffer[begin..count]);
+		nal_unit.extend_from_slice(&buffer[begin..8192]);
 	}
 }
 
