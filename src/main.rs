@@ -157,8 +157,10 @@ fn new_unit_event(frame: Vec<u8>) {
 					}
 					units.clear();
 					units.push(frame);
+					debug!("Finished streaming into ffmpeg's stdin");
 				}
 
+				debug!("Moving file...");
 				if if let Ok(code) = child.wait() { code.success() } else { false } {
 					let _ = STREAM_FILE_LOCK.write();
 					let path = format!("{}/stream.mp4", STREAM_TMP_DIR);
