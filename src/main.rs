@@ -14,7 +14,7 @@ use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::mem::swap;
 use std::ops::Drop;
-use std::process::{self, Child, ChildStdin, Command};
+use std::process::{self, Child, Command};
 use std::sync::RwLock;
 use std::thread;
 use time::Duration;
@@ -136,6 +136,8 @@ fn new_unit_event(mut frame: Vec<u8>, ffmpeg: &mut FFMpeg) {
 				if ffmpeg.nal_units > FRAMERATE * 3 {
 					let mut newinst = FFMpeg::spawn();
 					swap(ffmpeg, &mut newinst);
+
+					{ let _ = ffmpeg.process.stdin.take(); } // Drop stdin to force some action out of it
 				}
 
 				let _ = STREAM_FILE_LOCK.write();
@@ -164,13 +166,12 @@ fn get_unit_type(frame: &Vec<u8>) -> u8 {
 
 struct FFMpeg {
 	pub process: Child,
-	pub stdin: ChildStdin,
 	pub nal_units: usize,
 }
 
 impl FFMpeg {
 	pub fn spawn() -> Self {
-		let mut child = Command::new("ffmpeg")
+		let process = Command::new("ffmpeg")
 			.args(vec!["-loglevel", "quiet"]) // Don't output any crap that is not the actual output of the stream
 			.args(vec!["-i", "-"]) // Bind to STDIN
 			.args(vec!["-c:v", "copy"]) // Copy video only
@@ -181,12 +182,7 @@ impl FFMpeg {
 			.spawn()
 			.expect("Failed to spawn ffmpeg process.");
 
-		let stdin = child.stdin.take().expect("Failed to open STDIN of FFMpeg");
-		let mut ffmpeg = FFMpeg {
-			process: child,
-			stdin,
-			nal_units: 0,
-		};
+		let mut ffmpeg = FFMpeg { process, nal_units: 0 };
 
 		for param in vec![H264_NAL_PIC_PARAM.read().unwrap(), H264_NAL_SEQ_PARAM.read().unwrap()] {
 			if param.0.len() > 0 {
@@ -198,7 +194,11 @@ impl FFMpeg {
 	}
 
 	pub fn write(&mut self, buf: &mut Vec<u8>) {
-		let _ = self.stdin.write_all(&mut buf[..]);
+		let mut stdin = self.process.stdin.take().expect("Failed to open STDIN of FFMpeg");
+
+		let _ = stdin.write_all(&mut buf[..]);
+		swap(&mut self.process.stdin, &mut Some(stdin)); // Inject it back into self.process
+
 		self.nal_units += 1;
 	}
 }
