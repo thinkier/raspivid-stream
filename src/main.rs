@@ -5,6 +5,7 @@ extern crate log;
 extern crate lazy_static;
 extern crate env_logger;
 extern crate iron;
+extern crate time;
 
 use iron::{headers, status};
 use iron::prelude::*;
@@ -15,6 +16,7 @@ use std::mem::swap;
 use std::process::{self, Command};
 use std::sync::{Mutex, RwLock};
 use std::thread;
+use time::Duration;
 
 const STREAM_TMP_DIR: &'static str = "/tmp/raspivid-stream";
 const FRAMERATE: usize = 20;
@@ -43,7 +45,10 @@ fn main() {
 				if let Ok(mut file) = File::open(&format!("{}/stream.mp4", STREAM_TMP_DIR)) {
 					let mut buffer = vec![];
 					let _ = file.read_to_end(&mut buffer);
-					Response::with((status::Ok, buffer))
+					let mut response = Response::with((status::Ok, buffer));
+					response.headers.set(headers::Expires(headers::HttpDate(time::now() + Duration::seconds(1))));
+
+					response
 				} else { Response::new() }
 			}
 			_ => {
@@ -139,7 +144,7 @@ fn new_unit_event(frame: Vec<u8>, units: &mut Vec<u8>) {
 				swap(units, &mut new_units);
 
 				thread::spawn(move || {
-					let _ = FFMPEG_EXEC_LOCK.lock();
+					let _ = FFMPEG_EXEC_LOCK.lock().unwrap();
 
 					let mut child = if let Ok(child) = Command::new("ffmpeg")
 						.args(vec!["-loglevel", "quiet"]) // Don't output any crap that is not the actual output of the stream
