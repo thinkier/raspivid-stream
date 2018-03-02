@@ -136,9 +136,9 @@ fn new_unit_event(frame: Vec<u8>) {
 				.args(vec!["-i", "-"]) // Bind to STDIN
 				.args(vec!["-c:v", "copy"]) // Copy video only
 				.args(vec!["-f", "mp4"]) // Output as mp4
-				.arg(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR)) // Output to stdout
+				.arg(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR))
 				.stdin(process::Stdio::piped())
-				.stdout(process::Stdio::piped()) // Write to /tmp if all else fails
+				.stdout(process::Stdio::null())
 				.spawn() { child } else { return; };
 			{
 				let mut ffmpeg_stdin = if let Some(out) = child.stdin.take() { out } else {
