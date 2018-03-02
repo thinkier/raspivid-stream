@@ -47,6 +47,7 @@ fn main() {
 				Response::with((status::Ok, "
 					var videoContainer = document.getElementById('videoContainer');
 					var num = videoContainer.begin + 1 - 1; /* Weird way to sanitize it :thinking: */
+					console.log(\"Video fragment index: \" + num);
 					initVideoContainer();
 
 					function continueStream(e) {
