@@ -13,7 +13,7 @@ use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::mem::swap;
 use std::process::{self, Command};
-use std::sync::RwLock;
+use std::sync::{Mutex, RwLock};
 use std::thread;
 
 const STREAM_TMP_DIR: &'static str = "/tmp/raspivid-stream";
@@ -26,6 +26,7 @@ lazy_static! {
 	static ref H264_NAL_PIC_PARAM: RwLock<Singleton<Vec<u8>>> = RwLock::new(Singleton(vec![]));
 	static ref H264_NAL_SEQ_PARAM: RwLock<Singleton<Vec<u8>>> = RwLock::new(Singleton(vec![]));
 	static ref STREAM_FILE_LOCK: RwLock<bool> = RwLock::new(false);
+	static ref FFMPEG_EXEC_LOCK: Mutex<bool> = Mutex::new(false);
 }
 
 fn main() {
@@ -124,51 +125,57 @@ fn split_stream<R: Read>(input_stream: &mut R, mut units: &mut Vec<u8>) {
 fn new_unit_event(frame: Vec<u8>, units: &mut Vec<u8>) {
 	let unit_type = get_unit_type(&frame);
 	debug!("New NAL unit: type={}", unit_type);
-	match unit_type {
-		5 => {
-			// Minimum 64kb h264 buffer
-			if units.len() < 65535 {
-				units.extend(frame);
-				return;
-			}
-
-			let mut child = if let Ok(child) = Command::new("ffmpeg")
-				.args(vec!["-loglevel", "quiet"]) // Don't output any crap that is not the actual output of the stream
-				.args(vec!["-i", "-"]) // Bind to STDIN
-				.args(vec!["-c:v", "copy"]) // Copy video only
-				.args(vec!["-f", "mp4"]) // Output as mp4
-				.arg(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR))
-				.stdin(process::Stdio::piped())
-				.stdout(process::Stdio::null())
-				.spawn() { child } else { return; };
-
-			let mut new_units = vec![];
-			{
-				new_units.extend(&H264_NAL_PIC_PARAM.read().unwrap().0[..]);
-				new_units.extend(&H264_NAL_SEQ_PARAM.read().unwrap().0[..]);
-			}
-			swap(units, &mut new_units);
-
-			thread::spawn(move || {
-				{
-					if let Some(mut ffmpeg_stdin) = child.stdin.take() {
-						let _ = ffmpeg_stdin.write_all(&new_units[..]);
-					}
+	loop {
+		match unit_type {
+			5 => {
+				// Minimum 256kb h264 buffer
+				if units.len() < 256*1024{
+					break;
 				}
+				let mut new_units = vec![];
+				{
+					new_units.extend(&H264_NAL_PIC_PARAM.read().unwrap().0[..]);
+					new_units.extend(&H264_NAL_SEQ_PARAM.read().unwrap().0[..]);
+				}
+				swap(units, &mut new_units);
 
-				// Moved waiting thread???
-				debug!("Moving file...");
+				thread::spawn(move || {
+					let lock = FFMPEG_EXEC_LOCK.try_lock();
+					if lock.is_err() {
+						swap(units, &mut new_units);
+						return;
+					}
+					let mut child = if let Ok(child) = Command::new("ffmpeg")
+						.args(vec!["-loglevel", "quiet"]) // Don't output any crap that is not the actual output of the stream
+						.args(vec!["-i", "-"]) // Bind to STDIN
+						.args(vec!["-c:v", "copy"]) // Copy video only
+						.args(vec!["-f", "mp4"]) // Output as mp4
+						.arg(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR))
+						.stdin(process::Stdio::piped())
+						.stdout(process::Stdio::null())
+						.spawn() { child } else { return; };
 
-				let _ = child.wait();
-				let _ = STREAM_FILE_LOCK.write();
-				let path = format!("{}/stream.mp4", STREAM_TMP_DIR);
-				let _ = fs::remove_file(&path);
-				let _ = fs::rename(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR), &path);
-			});
+					{
+						if let Some(mut ffmpeg_stdin) = child.stdin.take() {
+							let _ = ffmpeg_stdin.write_all(&new_units[..]);
+						}
+					}
+
+					// Moved waiting thread???
+					debug!("Moving file...");
+
+					let _ = child.wait();
+					let _ = STREAM_FILE_LOCK.write();
+					let path = format!("{}/stream.mp4", STREAM_TMP_DIR);
+					let _ = fs::remove_file(&path);
+					let _ = fs::rename(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR), &path);
+				});
+			}
+			7 => H264_NAL_PIC_PARAM.write().unwrap().0 = frame.clone(),
+			8 => H264_NAL_SEQ_PARAM.write().unwrap().0 = frame.clone(),
+			_ => {}
 		}
-		7 => H264_NAL_PIC_PARAM.write().unwrap().0 = frame.clone(),
-		8 => H264_NAL_SEQ_PARAM.write().unwrap().0 = frame.clone(),
-		_ => {}
+		break;
 	}
 	units.extend(frame);
 }
