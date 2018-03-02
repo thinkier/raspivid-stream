@@ -33,7 +33,7 @@ fn main() {
 	}
 
 	thread::spawn(|| {
-		Iron::new(|req: &mut Request| Ok(match req.url.path().pop().unwrap_or("index.html") {
+		let mut iron = Iron::new(|req: &mut Request| Ok(match req.url.path().pop().unwrap_or("index.html") {
 			"stream.mp4" => {
 				if let Ok(mut file) = File::open(&format!("{}/stream.mp4", STREAM_TMP_DIR)) {
 					let mut buffer = vec![];
@@ -50,7 +50,9 @@ fn main() {
 				info!("[{}]: normal looper", req.remote_addr);
 				response
 			}
-		})).http("0.0.0.0:3128").unwrap();
+		}));
+		iron.threads = 2usize;
+		iron.http("0.0.0.0:3128").unwrap();
 	});
 	loop {
 		let mut child = if let Ok(child) = Command::new("raspivid")
