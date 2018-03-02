@@ -124,7 +124,6 @@ fn split_stream<R: Read>(input_stream: &mut R, mut units: &mut Vec<u8>) {
 
 fn new_unit_event(frame: Vec<u8>, units: &mut Vec<u8>) {
 	let unit_type = get_unit_type(&frame);
-	debug!("New NAL unit: type={}", unit_type);
 	loop {
 		match unit_type {
 			5 => {
