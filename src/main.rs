@@ -10,7 +10,7 @@ use iron::{headers, status};
 use iron::prelude::*;
 use std::env;
 use std::fs::{self, File};
-use std::io::{BufWriter, Read, Write};
+use std::io::{Read, Write};
 use std::mem::swap;
 use std::process::{self, Command};
 use std::sync::RwLock;
@@ -85,7 +85,7 @@ fn main() {
 	}
 }
 
-fn split_stream<R: Read>(input_stream: &mut R, units: &mut Vec<u8>) {
+fn split_stream<R: Read>(input_stream: &mut R, mut units: &mut Vec<u8>) {
 	let mut nulls: usize = 0;
 	let mut nal_unit: Vec<u8> = vec![];
 	let mut buffer = [0u8; 8192];
@@ -150,10 +150,10 @@ fn new_unit_event(frame: Vec<u8>, units: &mut Vec<u8>) {
 			}
 			swap(units, &mut new_units);
 
-			thread::spawn(|| {
+			thread::spawn(move || {
 				{
 					if let Some(mut ffmpeg_stdin) = child.stdin.take() {
-						ffmpeg_stdin.write_all(&new_units[..]);
+						let _ = ffmpeg_stdin.write_all(&new_units[..]);
 					}
 				}
 
@@ -167,8 +167,8 @@ fn new_unit_event(frame: Vec<u8>, units: &mut Vec<u8>) {
 				let _ = fs::rename(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR), &path);
 			});
 		}
-		7 => H264_NAL_PIC_PARAM.write().unwrap().0 = frame,
-		8 => H264_NAL_SEQ_PARAM.write().unwrap().0 = frame,
+		7 => H264_NAL_PIC_PARAM.write().unwrap().0 = frame.clone(),
+		8 => H264_NAL_SEQ_PARAM.write().unwrap().0 = frame.clone(),
 		_ => {}
 	}
 	units.extend(frame);
