@@ -58,7 +58,7 @@ fn main() {
 			"" => {
 				// Serve the script with html
 				let num = STREAM_FILE_COUNTER.read().unwrap().0;
-				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><video id='stream' height='100%' begin='{}' autoplay src='/stream{}.mp4'/>{}</body></html>", num, num, "<script type='text/javascript' src='/script.js'/>")));
+				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><center><video id='stream' height='100%' begin='{}' autoplay src='/stream{}.mp4'/></center>{}</body></html>", num, num, "<script type='text/javascript' src='/script.js'/>")));
 				response.headers.set(headers::ContentType::html());
 
 				info!("[{}]: normal looper", req.remote_addr);
