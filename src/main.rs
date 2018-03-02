@@ -23,6 +23,7 @@ lazy_static! {
 	static ref H264_NAL_UNITS: Mutex<Vec<Vec<u8>>> = Mutex::new(vec![]);
 	static ref H264_NAL_PIC_PARAM: RwLock<Singleton<Vec<u8>>> = RwLock::new(Singleton(vec![]));
 	static ref H264_NAL_SEQ_PARAM: RwLock<Singleton<Vec<u8>>> = RwLock::new(Singleton(vec![]));
+	static ref STREAM_FILE_LOCK: RwLock<bool> = RwLock::new(false);
 }
 
 fn main() {
@@ -35,6 +36,7 @@ fn main() {
 	thread::spawn(|| {
 		let mut iron = Iron::new(|req: &mut Request| Ok(match req.url.path().pop().unwrap_or("index.html") {
 			"stream.mp4" => {
+				let _ = STREAM_FILE_LOCK.read();
 				if let Ok(mut file) = File::open(&format!("{}/stream.mp4", STREAM_TMP_DIR)) {
 					let mut buffer = vec![];
 					let _ = file.read_to_end(&mut buffer);
@@ -153,7 +155,10 @@ fn new_unit_event(frame: Vec<u8>) {
 			}
 
 			if if let Ok(code) = child.wait() { code.success() } else { false } {
-				let _ = fs::rename(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR), &format!("{}/stream.mp4", STREAM_TMP_DIR));
+				let _ = STREAM_FILE_LOCK.write();
+				let path = format!("{}/stream.mp4", STREAM_TMP_DIR);
+				let _ = fs::remove_file(&path);
+				let _ = fs::rename(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR), &path);
 			}
 		}
 		7 => H264_NAL_PIC_PARAM.write().unwrap().0 = frame,
