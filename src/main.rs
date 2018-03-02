@@ -127,7 +127,7 @@ fn new_unit_event(frame: Vec<u8>) {
 				H264_NAL_UNITS.lock().unwrap().push(frame);
 				return;
 			}
-			thread::Builder::new().name("mp4_convert".to_string()).spawn(|| {
+			let _ = thread::Builder::new().name("mp4_convert".to_string()).spawn(|| {
 				let mut child = if let Ok(child) = Command::new("ffmpeg")
 					.args(vec!["-loglevel", "quiet"]) // Don't output any crap that is not the actual output of the stream
 					.args(vec!["-i", "-"]) // Bind to STDIN
