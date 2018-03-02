@@ -69,7 +69,6 @@ fn main() {
 				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><center><div id='videoContainer' begin='{}'></div></center>{}</body></html>", num, "<script type='text/javascript' src='/script.js'/>")));
 				response.headers.set(headers::ContentType::html());
 
-				info!("[{}]: normal looper", req.remote_addr);
 				response
 			}
 			custom_file => {
