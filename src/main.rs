@@ -84,7 +84,7 @@ fn main() {
 fn split_stream<R: Read>(input_stream: &mut R) {
 	let mut nulls: usize = 0;
 	let mut nal_unit: Vec<u8> = vec![];
-	let mut buffer: [u8; 8192] = [0u8; 8192];
+	let mut buffer = [0u8; 8192];
 
 	while let Ok(count) = input_stream.read(&mut buffer) {
 		if count <= 0 { break; }
@@ -127,41 +127,42 @@ fn new_unit_event(frame: Vec<u8>) {
 				H264_NAL_UNITS.lock().unwrap().push(frame);
 				return;
 			}
+			thread::Builder::new().name("mp4_convert".to_string()).spawn(|| {
+				let mut child = if let Ok(child) = Command::new("ffmpeg")
+					.args(vec!["-loglevel", "quiet"]) // Don't output any crap that is not the actual output of the stream
+					.args(vec!["-i", "-"]) // Bind to STDIN
+					.args(vec!["-c:v", "copy"]) // Copy video only
+					.args(vec!["-f", "mp4"]) // Output as mp4
+					.arg(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR)) // Output to stdout
+					.stdin(process::Stdio::piped())
+					.stdout(process::Stdio::piped()) // Write to /tmp if all else fails
+					.spawn() { child } else { return; };
+				{
+					let mut ffmpeg_stdin = if let Some(out) = child.stdin.take() { out } else {
+						let _ = child.kill();
+						panic!("Failed to open STDIN of ffmpeg for converting.");
+					};
 
-			let mut child = if let Ok(child) = Command::new("ffmpeg")
-				.args(vec!["-loglevel", "quiet"]) // Don't output any crap that is not the actual output of the stream
-				.args(vec!["-i", "-"]) // Bind to STDIN
-				.args(vec!["-c:v", "copy"]) // Copy video only
-				.args(vec!["-f", "mp4"]) // Output as mp4
-				.arg(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR)) // Output to stdout
-				.stdin(process::Stdio::piped())
-				.stdout(process::Stdio::piped()) // Write to /tmp if all else fails
-				.spawn() { child } else { return; };
-			{
-				let mut ffmpeg_stdin = if let Some(out) = child.stdin.take() { out } else {
-					let _ = child.kill();
-					panic!("Failed to open STDIN of ffmpeg for converting.");
-				};
+					let mut units = H264_NAL_UNITS.lock().unwrap();
 
-				let mut units = H264_NAL_UNITS.lock().unwrap();
+					let _ = ffmpeg_stdin.write(&H264_NAL_PIC_PARAM.read().unwrap().0[..]);
+					let _ = ffmpeg_stdin.write(&H264_NAL_SEQ_PARAM.read().unwrap().0[..]);
 
-				let _ = ffmpeg_stdin.write(&H264_NAL_PIC_PARAM.read().unwrap().0[..]);
-				let _ = ffmpeg_stdin.write(&H264_NAL_SEQ_PARAM.read().unwrap().0[..]);
+					for i in 0..units.len() {
+						let _ = ffmpeg_stdin.write(&units[i][..]);
+					}
+					units.clear();
 
-				for i in 0..units.len() {
-					let _ = ffmpeg_stdin.write(&units[i][..]);
+					units.push(frame);
 				}
-				units.clear();
 
-				units.push(frame);
-			}
-
-			if if let Ok(code) = child.wait() { code.success() } else { false } {
-				let _ = STREAM_FILE_LOCK.write();
-				let path = format!("{}/stream.mp4", STREAM_TMP_DIR);
-				let _ = fs::remove_file(&path);
-				let _ = fs::rename(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR), &path);
-			}
+				if if let Ok(code) = child.wait() { code.success() } else { false } {
+					let _ = STREAM_FILE_LOCK.write();
+					let path = format!("{}/stream.mp4", STREAM_TMP_DIR);
+					let _ = fs::remove_file(&path);
+					let _ = fs::rename(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR), &path);
+				}
+			});
 		}
 		7 => H264_NAL_PIC_PARAM.write().unwrap().0 = frame,
 		8 => H264_NAL_SEQ_PARAM.write().unwrap().0 = frame,
