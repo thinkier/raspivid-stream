@@ -16,6 +16,7 @@ use std::sync::{Mutex, RwLock};
 use std::thread;
 
 const STREAM_TMP_DIR: &'static str = "/tmp/raspivid-stream";
+const FRAMERATE: usize = 20;
 
 struct Singleton<T>(T);
 
@@ -61,7 +62,7 @@ fn main() {
 			.args(vec!["-o", "-"]) // Output to STDOUT
 			.args(vec!["-w", "1280"]) // Width
 			.args(vec!["-h", "720"]) // Height
-			.args(vec!["-fps", "30"]) // Framerate
+			.args(vec!["-fps", &format!("{}", FRAMERATE)]) // Framerate
 			.args(vec!["-t", "7200000"]) // Stay on for a 2 hours instead of quickly exiting
 			.args(vec!["-a", "4"]) // Output time
 			.args(vec!["-a", &format!("Device: {} | %F %X %z", env::var("HOSTNAME").unwrap_or("unknown".to_string()))]) // Supplementary argument hmm rn it requires an additional `export` command
@@ -121,7 +122,7 @@ fn new_unit_event(frame: Vec<u8>) {
 	match get_unit_type(&frame) {
 		1 => H264_NAL_UNITS.lock().unwrap().push(frame),
 		5 => {
-			if { H264_NAL_UNITS.lock().unwrap().len() < 150 } {
+			if { H264_NAL_UNITS.lock().unwrap().len() < FRAMERATE } {
 				H264_NAL_UNITS.lock().unwrap().push(frame);
 				return;
 			}
