@@ -21,6 +21,7 @@ const FRAMERATE: usize = 20;
 struct Singleton<T>(T);
 
 lazy_static! {
+	// All H264 stuff can be moved into a reference passed around with new frame events
 	static ref H264_NAL_UNITS: Mutex<Vec<u8>> = Mutex::new(vec![]);
 	static ref H264_NAL_PIC_PARAM: RwLock<Singleton<Vec<u8>>> = RwLock::new(Singleton(vec![]));
 	static ref H264_NAL_SEQ_PARAM: RwLock<Singleton<Vec<u8>>> = RwLock::new(Singleton(vec![]));
@@ -158,6 +159,7 @@ fn new_unit_event(frame: Vec<u8>) {
 				debug!("Finished streaming into ffmpeg's stdin");
 			}
 
+			// Moved waiting thread???
 			debug!("Moving file...");
 			if if let Ok(code) = child.wait() { code.success() } else { false } {
 				let _ = STREAM_FILE_LOCK.write();
