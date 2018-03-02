@@ -46,12 +46,13 @@ fn main() {
 			"script.js" => {
 				Response::with((status::Ok, "\
 					var streamer = document.getElementById('streamer');
-					var num = streamer.begin + 0;
+					// var num = streamer.begin + 0;
 					streamer.onended = function(){
-						console.log(\"Fetching new video to play...\");
-	    				streamer.src = \"/stream\" + (++num) + \".mp4\";
-						streamer.currentTime = 0;
-						streamer.load();
+						window.location.reload(false);
+						// console.log(\"Fetching new video to play...\");
+	    				// streamer.src = \"/stream\" + (++num) + \".mp4\";
+						// streamer.currentTime = 0;
+						// streamer.load();
 					}
 				"))
 			}
