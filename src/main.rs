@@ -159,12 +159,12 @@ fn new_unit_event(frame: Vec<u8>, units: &mut Vec<u8>) {
 
 			// Moved waiting thread???
 			debug!("Moving file...");
-			if if let Ok(code) = child.wait() { code.success() } else { false } {
-				let _ = STREAM_FILE_LOCK.write();
-				let path = format!("{}/stream.mp4", STREAM_TMP_DIR);
-				let _ = fs::remove_file(&path);
-				let _ = fs::rename(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR), &path);
-			}
+
+			let _ = child.wait();
+			let _ = STREAM_FILE_LOCK.write();
+			let path = format!("{}/stream.mp4", STREAM_TMP_DIR);
+			let _ = fs::remove_file(&path);
+			let _ = fs::rename(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR), &path);
 		}
 		7 => H264_NAL_PIC_PARAM.write().unwrap().0 = frame,
 		8 => H264_NAL_SEQ_PARAM.write().unwrap().0 = frame,
