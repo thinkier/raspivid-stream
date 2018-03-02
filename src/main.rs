@@ -42,7 +42,7 @@ fn main() {
 				info!("[{}]: stream.mp4", req.remote_addr);
 				response
 			} else {
-				Response::with((status::NotFound))
+				Response::new()
 			}
 			_ => {
 				// Serve the script with html
