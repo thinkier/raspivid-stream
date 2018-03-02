@@ -44,12 +44,12 @@ fn main() {
 				response
 			}
 			"script.js" => {
-				Response::with((status::Ok, "\
-				var num = document.getElementById('stream').begin;\
-				var stream = document.getElementById('stream');\
-				stream.removeAttribute('controls');\
-				stream.addEventListener('ended',continueStream,true);\
-				function continueStream(e){\
+				Response::with((status::Ok, "
+				var num = document.getElementById('stream').begin;
+				var stream = document.getElementById('stream');
+				stream.removeAttribute('controls');
+				stream.addEventListener('ended',continueStream,true);
+				function continueStream(e) {
 					stream.src = '/stream' + (++num) +'.mp4';
 				}"))
 			}
