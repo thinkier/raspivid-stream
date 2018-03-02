@@ -54,7 +54,7 @@ fn main() {
 			_ => {
 				// Serve the script with html
 				let mut response = Response::with((status::Ok, "<!doctype html><html><body><video id='stream' width='1280' height='720' src='/stream.mp4' autoplay/>\
-	<script type='text/javascript'>var stream = document.getElementById('stream');stream.removeAttribute('controls');stream.addEventListener('ended',reloadStream,false);function reloadStream(e){window.location.reload(false);}</script></body></html>"));
+	<script type='text/javascript'>var stream = document.getElementById('stream');stream.removeAttribute('controls');stream.addEventListener('ended',reloadStream,true);function reloadStream(e){window.location.reload(false);}</script></body></html>"));
 				response.headers.set(headers::ContentType::html());
 
 				info!("[{}]: normal looper", req.remote_addr);
