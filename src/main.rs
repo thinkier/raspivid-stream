@@ -123,10 +123,14 @@ fn new_unit_event(frame: Vec<u8>) {
 	debug!("New NAL unit: type={}", unit_type);
 	match unit_type {
 		5 => {
-			if { H264_NAL_UNITS.lock().unwrap().len() < FRAMERATE } {
-				H264_NAL_UNITS.lock().unwrap().push(frame);
-				return;
+			{
+				let mut units = H264_NAL_UNITS.lock().unwrap();
+				if units.len() < FRAMERATE {
+					units.push(frame);
+					return;
+				}
 			}
+
 			let _ = thread::Builder::new().name("mp4_convert".to_string()).spawn(|| {
 				let mut child = if let Ok(child) = Command::new("ffmpeg")
 					.args(vec!["-loglevel", "quiet"]) // Don't output any crap that is not the actual output of the stream
@@ -152,7 +156,6 @@ fn new_unit_event(frame: Vec<u8>) {
 						let _ = ffmpeg_stdin.write(&units[i][..]);
 					}
 					units.clear();
-
 					units.push(frame);
 				}
 
