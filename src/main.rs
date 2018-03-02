@@ -46,8 +46,6 @@ fn main() {
 				{}</script></body></html>", num, num, "streamer.onended = function(){
 					console.log(\"Fetching new video to play...\");
 					streamer.src = \"/stream\" + (++num) + \".mp4\";
-					streamer.currentTime = 0;
-					streamer.load();
 				}")));
 				response.headers.set(headers::ContentType::html());
 
