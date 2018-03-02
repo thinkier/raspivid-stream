@@ -129,7 +129,7 @@ fn new_unit_event(frame: Vec<u8>, units: &mut Vec<u8>) {
 		match unit_type {
 			5 => {
 				// Minimum 256kb h264 buffer
-				if units.len() < 256*1024{
+				if units.len() < 256 * 1024 || { FFMPEG_EXEC_LOCK.try_lock().is_err() } {
 					break;
 				}
 				let mut new_units = vec![];
@@ -140,11 +140,8 @@ fn new_unit_event(frame: Vec<u8>, units: &mut Vec<u8>) {
 				swap(units, &mut new_units);
 
 				thread::spawn(move || {
-					let lock = FFMPEG_EXEC_LOCK.try_lock();
-					if lock.is_err() {
-						swap(units, &mut new_units);
-						return;
-					}
+					let _ = FFMPEG_EXEC_LOCK.lock();
+
 					let mut child = if let Ok(child) = Command::new("ffmpeg")
 						.args(vec!["-loglevel", "quiet"]) // Don't output any crap that is not the actual output of the stream
 						.args(vec!["-i", "-"]) // Bind to STDIN
