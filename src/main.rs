@@ -43,9 +43,20 @@ fn main() {
 
 				response
 			}
+			"script.js" => {
+				Response::with((status::Ok, "\
+				var num = document.getElementById('stream').begin;\
+				var stream = document.getElementById('stream');\
+				stream.removeAttribute('controls');\
+				stream.addEventListener('ended',continueStream,true);\
+				function continueStream(e){\
+					stream.innerHTML = '<source src='/stream'+ (num++) +'.mp4'/>'
+				}"))
+			}
 			"" => {
 				// Serve the script with html
-				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><video id='stream' width='1280' height='720' src='/stream{}.mp4' autoplay/>{}</body></html>", STREAM_FILE_COUNTER.read().unwrap().0, "<script type='text/javascript'>var stream = document.getElementById('stream');stream.removeAttribute('controls');stream.addEventListener('ended',reloadStream,true);function reloadStream(e){window.location.reload(false);}</script>")));
+				let num = STREAM_FILE_COUNTER.read().unwrap().0;
+				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><video id='stream' width='1280' height='720' begin='{}' autoplay><source src='/stream{}.mp4'/></video>{}</body></html>", num, num, "<script type='text/javascript' src='/script.js'/>")));
 				response.headers.set(headers::ContentType::html());
 
 				info!("[{}]: normal looper", req.remote_addr);
@@ -76,7 +87,7 @@ fn main() {
 			.args(vec!["-t", "7200000"]) // Stay on for a 2 hours instead of quickly exiting
 			.args(vec!["-rot", "90"]) // Rotate 90 degrees as the device is sitting sideways.
 			.args(vec!["-a", "4"]) // Output time
-			.args(vec!["-a", &format!("Device: {} | %F %X %z", env::var("HOSTNAME").unwrap_or("unknown".to_string()))]) // Supplementary argument hmm rn it requires an additional `export` command
+			.args(vec!["-a", &format!("Device: {} | %F %X %Z", env::var("HOSTNAME").unwrap_or("unknown".to_string()))]) // Supplementary argument hmm rn it requires an additional `export` command
 			.stdin(process::Stdio::null())
 			.stdout(process::Stdio::piped())
 			.spawn() { child } else { panic!("Failed to spawn raspivid process."); };
