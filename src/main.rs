@@ -1,3 +1,4 @@
+#![feature(fs_read_write)]
 #[macro_use]
 extern crate log;
 #[macro_use]
@@ -8,10 +9,13 @@ extern crate iron;
 use iron::{headers, status};
 use iron::prelude::*;
 use std::env;
+use std::fs;
 use std::io::{Read, Write};
 use std::process::{self, Command};
 use std::sync::{Mutex, RwLock};
 use std::thread;
+
+const STREAM_TMP_DIR: &'static str = "/tmp/raspivid-stream";
 
 struct Singleton<T>(T);
 
@@ -19,23 +23,26 @@ lazy_static! {
 	static ref H264_NAL_UNITS: Mutex<Vec<Vec<u8>>> = Mutex::new(vec![]);
 	static ref H264_NAL_PIC_PARAM: RwLock<Singleton<Vec<u8>>> = RwLock::new(Singleton(vec![]));
 	static ref H264_NAL_SEQ_PARAM: RwLock<Singleton<Vec<u8>>> = RwLock::new(Singleton(vec![]));
-	static ref MP4_SERVE_BUFFER: RwLock<Vec<u8>> = RwLock::new(vec![]);
 }
 
 fn main() {
 	env_logger::init();
 
+	if let Err(_) = fs::read_dir(STREAM_TMP_DIR) {
+		fs::create_dir(STREAM_TMP_DIR).expect("Failed to create temporary directory.");
+	}
+
 	thread::spawn(|| {
 		Iron::new(|req: &mut Request| Ok(match req.url.path().pop().unwrap_or("index.html") {
-			"stream.mp4" => {
-				// Serve the MP4 in memory
-				let mp4_buffer = MP4_SERVE_BUFFER.read().unwrap();
+			"stream.mp4" => if let Ok(mp4_buffer) = fs::read(&format!("{}/stream.mp4", STREAM_TMP_DIR)) {
 				debug!("Buffer len: {}", mp4_buffer.len());
 				let mut response = Response::with((status::Ok, mp4_buffer.clone()));
 				response.headers.set(headers::ContentType("video/mp4".parse().unwrap()));
 
 				info!("[{}]: stream.mp4", req.remote_addr);
 				response
+			} else {
+				Response::with((status::NotFound))
 			}
 			_ => {
 				// Serve the script with html
@@ -123,7 +130,7 @@ fn new_unit_event(frame: Vec<u8>) {
 				.args(vec!["-i", "-"]) // Bind to STDIN
 				.args(vec!["-c:v", "copy"]) // Copy video only
 				.args(vec!["-f", "mp4"]) // Output as mp4
-				.arg("pipe:1") // Output to stdout
+				.arg(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR)) // Output to stdout
 				.stdin(process::Stdio::piped())
 				.stdout(process::Stdio::piped()) // Write to /tmp if all else fails
 				.spawn() { child } else { return; };
@@ -146,11 +153,8 @@ fn new_unit_event(frame: Vec<u8>) {
 				units.push(frame);
 			}
 
-			{
-				let mut serve_buffer = MP4_SERVE_BUFFER.write().unwrap();
-				serve_buffer.clear();
-
-				serve_buffer.extend(child.wait_with_output().unwrap().stdout);
+			if if let Ok(code) = child.wait() { code.success() } else { false } {
+				let _ = fs::rename(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR), &format!("{}/stream.mp4", STREAM_TMP_DIR));
 			}
 		}
 		7 => H264_NAL_PIC_PARAM.write().unwrap().0 = frame,
