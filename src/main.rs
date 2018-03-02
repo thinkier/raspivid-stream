@@ -143,7 +143,7 @@ fn new_unit_event(frame: Vec<u8>, units: &mut Vec<u8>) {
 				}
 				swap(units, &mut new_units);
 
-				thread::Builder::new().name("ffmpeg handle".to_string()).spawn(move || {
+				let _ = thread::Builder::new().name("ffmpeg handle".to_string()).spawn(move || {
 					let _ = FFMPEG_EXEC_LOCK.lock().unwrap();
 
 					let mut child = if let Ok(child) = Command::new("ffmpeg")
