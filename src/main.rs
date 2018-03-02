@@ -136,8 +136,6 @@ fn new_unit_event(mut frame: Vec<u8>, ffmpeg: &mut FFMpeg) {
 				if ffmpeg.nal_units > FRAMERATE * 3 {
 					let mut newinst = FFMpeg::spawn();
 					swap(ffmpeg, &mut newinst);
-
-					{ let _ = ffmpeg.process.stdin.take(); } // Drop stdin to force some action out of it
 				}
 
 				let _ = STREAM_FILE_LOCK.write();
@@ -205,6 +203,7 @@ impl FFMpeg {
 
 impl Drop for FFMpeg {
 	fn drop(&mut self) {
+		{ let _ = self.process.stdin.take(); }
 		let _ = self.process.wait();
 	}
 }
