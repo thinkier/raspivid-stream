@@ -44,7 +44,7 @@ fn main() {
 				response
 			}
 			"script.js" => {
-				Response::with((status::Ok, "
+				Response::with((status::Ok, "\
 					var videoContainer = document.getElementById('videoContainer');
 					var num = videoContainer.begin + 1 - 1; /* Weird way to sanitize it :thinking: */
 					console.log(\"Video fragment index: \" + num);
