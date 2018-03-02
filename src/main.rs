@@ -11,6 +11,7 @@ use iron::prelude::*;
 use std::env;
 use std::fs::{self, File};
 use std::io::{BufWriter, Read, Write};
+use std::mem::swap;
 use std::process::{self, Command};
 use std::sync::RwLock;
 use std::thread;
@@ -126,7 +127,8 @@ fn new_unit_event(frame: Vec<u8>, units: &mut Vec<u8>) {
 	debug!("New NAL unit: type={}", unit_type);
 	match unit_type {
 		5 => {
-			if units.len() < 65535 { // Minimum 64kb h264 buffer
+			// Minimum 64kb h264 buffer
+			if units.len() < 65535 {
 				units.extend(frame);
 				return;
 			}
@@ -140,36 +142,36 @@ fn new_unit_event(frame: Vec<u8>, units: &mut Vec<u8>) {
 				.stdin(process::Stdio::piped())
 				.stdout(process::Stdio::null())
 				.spawn() { child } else { return; };
+
+			let mut new_units = vec![];
 			{
-				let mut ffmpeg_stdin = BufWriter::new(if let Some(out) = child.stdin.take() { out } else {
-					let _ = child.kill();
-					panic!("Failed to open STDIN of ffmpeg for converting.");
-				});
-
-				let _ = ffmpeg_stdin.write(&H264_NAL_PIC_PARAM.read().unwrap().0[..]);
-				let _ = ffmpeg_stdin.write(&H264_NAL_SEQ_PARAM.read().unwrap().0[..]);
-
-				debug!("Streaming into ffmpeg's stdin...");
-				let _ = ffmpeg_stdin.write(&units[..]);
-
-				units.clear();
-				units.extend(frame);
-				debug!("Finished streaming into ffmpeg's stdin");
+				new_units.extend(&H264_NAL_PIC_PARAM.read().unwrap().0[..]);
+				new_units.extend(&H264_NAL_SEQ_PARAM.read().unwrap().0[..]);
 			}
+			swap(units, &mut new_units);
 
-			// Moved waiting thread???
-			debug!("Moving file...");
+			thread::spawn(|| {
+				{
+					if let Some(mut ffmpeg_stdin) = child.stdin.take() {
+						ffmpeg_stdin.write_all(&new_units[..]);
+					}
+				}
 
-			let _ = child.wait();
-			let _ = STREAM_FILE_LOCK.write();
-			let path = format!("{}/stream.mp4", STREAM_TMP_DIR);
-			let _ = fs::remove_file(&path);
-			let _ = fs::rename(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR), &path);
+				// Moved waiting thread???
+				debug!("Moving file...");
+
+				let _ = child.wait();
+				let _ = STREAM_FILE_LOCK.write();
+				let path = format!("{}/stream.mp4", STREAM_TMP_DIR);
+				let _ = fs::remove_file(&path);
+				let _ = fs::rename(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR), &path);
+			});
 		}
 		7 => H264_NAL_PIC_PARAM.write().unwrap().0 = frame,
 		8 => H264_NAL_SEQ_PARAM.write().unwrap().0 = frame,
-		_ => units.extend(frame)
+		_ => {}
 	}
+	units.extend(frame);
 }
 
 fn get_unit_type(frame: &Vec<u8>) -> u8 {
