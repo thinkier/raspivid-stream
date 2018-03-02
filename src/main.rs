@@ -45,20 +45,27 @@ fn main() {
 			}
 			"script.js" => {
 				Response::with((status::Ok, "
-					var num = document.getElementById('stream').begin;
-					var stream = document.getElementById('stream');
-					stream.removeAttribute('controls');
-					stream.addEventListener('ended', continueStream, true);
+					var videoContainer = document.getElementById('videoContainer');
+					var num = videoContainer.begin + 1 - 1; /* Weird way to sanitize it :thinking: */
+					initVideoContainer();
+
 					function continueStream(e) {
-						num++;
-						stream.innerHTML += '<source src=\\'/stream' + num + '.mp4\\'/>';
+						initVideoContainer();
+					}
+
+					function initVideoContainer() {
+						var stream = document.getElementById('stream');
+						stream.removeAttribute('controls');
+						stream.addEventListener('ended', continueStream, true);
+						videoContainer.innerHTML = \"<video id='stream' height='100%' autoplay src='/stream\"+ num +\".mp4'/>\";
+						num += 1;
 					}\
 				"))
 			}
 			"" => {
 				// Serve the script with html
 				let num = STREAM_FILE_COUNTER.read().unwrap().0;
-				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><center><video id='stream' height='100%' begin='{}' autoplay src='/stream{}.mp4'/></center>{}</body></html>", num, num, "<script type='text/javascript' src='/script.js'/>")));
+				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><center><div id='videoContainer' begin='{}'></div></center>{}</body></html>", num, "<script type='text/javascript' src='/script.js'/>")));
 				response.headers.set(headers::ContentType::html());
 
 				info!("[{}]: normal looper", req.remote_addr);
