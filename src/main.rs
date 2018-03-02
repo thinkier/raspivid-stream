@@ -37,12 +37,6 @@ fn main() {
 
 	thread::spawn(|| {
 		let mut iron = Iron::new(|req: &mut Request| Ok(match req.url.path().pop().unwrap_or("") {
-			"stream.mp4" => {
-				let mut response = Response::with(status::TemporaryRedirect);
-				response.headers.set(headers::Location(format!("/stream{}.mp4", STREAM_FILE_COUNTER.read().unwrap().0)));
-
-				response
-			}
 			"" => {
 				// Serve the script with html
 				let num = STREAM_FILE_COUNTER.read().unwrap().0;
@@ -60,14 +54,20 @@ fn main() {
 				response
 			}
 			custom_file => {
-				if let Ok(mut file) = File::open(&format!("{}/{}", STREAM_TMP_DIR, custom_file)) {
+				let path = format!("{}/{}", STREAM_TMP_DIR, custom_file);
+				if let Ok(mut file) = File::open(&path) {
 					let mut buffer = vec![];
 					let _ = file.read_to_end(&mut buffer);
 					let mut response = Response::with((status::Ok, buffer));
 					response.headers.set(headers::Expires(headers::HttpDate(time::now() + Duration::seconds(1))));
 
 					response
-				} else { Response::new() }
+				} else {
+					let mut response = Response::with(status::TemporaryRedirect);
+					response.headers.set(headers::Location(format!("/stream{}.mp4", STREAM_FILE_COUNTER.read().unwrap().0)));
+
+					response
+				}
 			}
 		}));
 		iron.threads = 2usize;
