@@ -10,7 +10,7 @@ use iron::{headers, status};
 use iron::prelude::*;
 use std::env;
 use std::fs::{self, File};
-use std::io::{Read, Write};
+use std::io::{BufWriter, Read, Write};
 use std::process::{self, Command};
 use std::sync::{Mutex, RwLock};
 use std::thread;
@@ -141,10 +141,10 @@ fn new_unit_event(frame: Vec<u8>) {
 				.stdout(process::Stdio::null())
 				.spawn() { child } else { return; };
 			{
-				let mut ffmpeg_stdin = if let Some(out) = child.stdin.take() { out } else {
+				let mut ffmpeg_stdin = BufWriter::new(if let Some(out) = child.stdin.take() { out } else {
 					let _ = child.kill();
 					panic!("Failed to open STDIN of ffmpeg for converting.");
-				};
+				});
 
 				let _ = ffmpeg_stdin.write(&H264_NAL_PIC_PARAM.read().unwrap().0[..]);
 				let _ = ffmpeg_stdin.write(&H264_NAL_SEQ_PARAM.read().unwrap().0[..]);
