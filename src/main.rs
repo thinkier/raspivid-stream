@@ -9,7 +9,7 @@ extern crate iron;
 use iron::{headers, status};
 use iron::prelude::*;
 use std::env;
-use std::fs;
+use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::process::{self, Command};
 use std::sync::{Mutex, RwLock};
@@ -34,15 +34,12 @@ fn main() {
 
 	thread::spawn(|| {
 		Iron::new(|req: &mut Request| Ok(match req.url.path().pop().unwrap_or("index.html") {
-			"stream.mp4" => if let Ok(mp4_buffer) = fs::read(&format!("{}/stream.mp4", STREAM_TMP_DIR)) {
-				debug!("Buffer len: {}", mp4_buffer.len());
-				let mut response = Response::with((status::Ok, mp4_buffer.clone()));
-				response.headers.set(headers::ContentType("video/mp4".parse().unwrap()));
-
-				info!("[{}]: stream.mp4", req.remote_addr);
-				response
-			} else {
-				Response::new()
+			"stream.mp4" => {
+				if let Ok(mut file) = File::open(&format!("{}/stream.mp4", STREAM_TMP_DIR)) {
+					let mut buffer = vec![];
+					let _ = file.read_to_end(&mut buffer);
+					Response::with((status::Ok, buffer))
+				} else { Response::new() }
 			}
 			_ => {
 				// Serve the script with html
