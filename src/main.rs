@@ -21,7 +21,7 @@ const FRAMERATE: usize = 20;
 struct Singleton<T>(T);
 
 lazy_static! {
-	static ref H264_NAL_UNITS: Mutex<Vec<Vec<u8>>> = Mutex::new(vec![]);
+	static ref H264_NAL_UNITS: Mutex<Vec<u8>> = Mutex::new(vec![]);
 	static ref H264_NAL_PIC_PARAM: RwLock<Singleton<Vec<u8>>> = RwLock::new(Singleton(vec![]));
 	static ref H264_NAL_SEQ_PARAM: RwLock<Singleton<Vec<u8>>> = RwLock::new(Singleton(vec![]));
 	static ref STREAM_FILE_LOCK: RwLock<bool> = RwLock::new(false);
@@ -125,8 +125,8 @@ fn new_unit_event(frame: Vec<u8>) {
 		5 => {
 			{
 				let mut units = H264_NAL_UNITS.lock().unwrap();
-				if units.len() < FRAMERATE {
-					units.push(frame);
+				if units.len() < 65535 { // Minimum 64kb h264 buffer
+					units.extend(frame);
 					return;
 				}
 			}
@@ -152,11 +152,10 @@ fn new_unit_event(frame: Vec<u8>) {
 
 					debug!("Streaming into ffmpeg's stdin...");
 					let mut units = H264_NAL_UNITS.lock().unwrap();
-					for i in 0..units.len() {
-						let _ = ffmpeg_stdin.write(&units[i][..]);
-					}
+					let _ = ffmpeg_stdin.write(&units[..]);
+
 					units.clear();
-					units.push(frame);
+					units.extend(frame);
 					debug!("Finished streaming into ffmpeg's stdin");
 				}
 
@@ -171,7 +170,7 @@ fn new_unit_event(frame: Vec<u8>) {
 		}
 		7 => H264_NAL_PIC_PARAM.write().unwrap().0 = frame,
 		8 => H264_NAL_SEQ_PARAM.write().unwrap().0 = frame,
-		_ => H264_NAL_UNITS.lock().unwrap().push(frame)
+		_ => H264_NAL_UNITS.lock().unwrap().extend(frame)
 	}
 }
 
