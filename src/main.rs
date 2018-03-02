@@ -28,21 +28,31 @@ lazy_static! {
 	// All H264 stuff can be moved into a reference passed around with new frame events
 	static ref H264_NAL_PIC_PARAM: RwLock<Singleton<Vec<u8>>> = RwLock::new(Singleton(vec![]));
 	static ref H264_NAL_SEQ_PARAM: RwLock<Singleton<Vec<u8>>> = RwLock::new(Singleton(vec![]));
-	static ref STREAM_FILE_LOCK: RwLock<bool> = RwLock::new(false);
+	static ref STREAM_FILE_COUNTER: RwLock<Singleton<usize>> = RwLock::new(Singleton(0));
 }
 
 fn main() {
 	env_logger::init();
-
-	if let Err(_) = fs::read_dir(STREAM_TMP_DIR) {
-		fs::create_dir(STREAM_TMP_DIR).expect("Failed to create temporary directory.");
-	}
+	clean_tmp_dir();
 
 	thread::spawn(|| {
-		let mut iron = Iron::new(|req: &mut Request| Ok(match req.url.path().pop().unwrap_or("index.html") {
+		let mut iron = Iron::new(|req: &mut Request| Ok(match req.url.path().pop().unwrap_or("") {
 			"stream.mp4" => {
-				let _ = STREAM_FILE_LOCK.read();
-				if let Ok(mut file) = File::open(&format!("{}/stream.mp4", STREAM_TMP_DIR)) {
+				let mut response = Response::with((status::TemporaryRedirect));
+				response.headers.set(headers::Location(format!("/stream{}.mp4", STREAM_FILE_COUNTER.read().unwrap().0)));
+
+				response
+			}
+			"" => {
+				// Serve the script with html
+				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><video id='stream' width='1280' height='720' src='/stream{}.mp4' autoplay/>{}</body></html>", STREAM_FILE_COUNTER.read().unwrap().0, "<script type='text/javascript'>var stream = document.getElementById('stream');stream.removeAttribute('controls');stream.addEventListener('ended',reloadStream,true);function reloadStream(e){window.location.reload(false);}</script>")));
+				response.headers.set(headers::ContentType::html());
+
+				info!("[{}]: normal looper", req.remote_addr);
+				response
+			}
+			custom_file => {
+				if let Ok(mut file) = File::open(&format!("{}/{}", STREAM_TMP_DIR, custom_file)) {
 					let mut buffer = vec![];
 					let _ = file.read_to_end(&mut buffer);
 					let mut response = Response::with((status::Ok, buffer));
@@ -50,15 +60,6 @@ fn main() {
 
 					response
 				} else { Response::new() }
-			}
-			_ => {
-				// Serve the script with html
-				let mut response = Response::with((status::Ok, "<!doctype html><html><body><video id='stream' width='1280' height='720' src='/stream.mp4' autoplay/>\
-	<script type='text/javascript'>var stream = document.getElementById('stream');stream.removeAttribute('controls');stream.addEventListener('ended',reloadStream,true);function reloadStream(e){window.location.reload(false);}</script></body></html>"));
-				response.headers.set(headers::ContentType::html());
-
-				info!("[{}]: normal looper", req.remote_addr);
-				response
 			}
 		}));
 		iron.threads = 2usize;
@@ -138,10 +139,14 @@ fn new_unit_event(mut frame: Vec<u8>, ffmpeg: &mut FFMpeg) {
 					swap(ffmpeg, &mut newinst);
 				}
 
-				let _ = STREAM_FILE_LOCK.write();
-				let path = format!("{}/stream.mp4", STREAM_TMP_DIR);
-				let _ = fs::remove_file(&path);
+				let mut counter = STREAM_FILE_COUNTER.write().unwrap();
+				counter.0 += 1;
+				let path = format!("{}/stream{}.mp4", STREAM_TMP_DIR, counter.0);
 				let _ = fs::rename(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR), &path);
+
+				if counter.0 >= 4 {
+					let _ = fs::remove_file(&format!("{}/stream{}.mp4", STREAM_TMP_DIR, counter.0 - 4)); // Delete old
+				}
 			}
 			7 => H264_NAL_PIC_PARAM.write().unwrap().0 = frame.clone(),
 			8 => H264_NAL_SEQ_PARAM.write().unwrap().0 = frame.clone(),
@@ -210,4 +215,9 @@ impl Drop for FFMpeg {
 		{ let _ = self.process.stdin.take(); }
 		let _ = self.process.wait();
 	}
+}
+
+fn clean_tmp_dir() {
+	let _ = fs::remove_dir_all(STREAM_TMP_DIR);
+	let _ = fs::create_dir(STREAM_TMP_DIR);
 }
