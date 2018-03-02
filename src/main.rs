@@ -45,28 +45,17 @@ fn main() {
 			}
 			"script.js" => {
 				Response::with((status::Ok, "\
-					var videoContainer = document.getElementById('videoContainer');
-					var num = videoContainer.begin + 1 - 1; /* Weird way to sanitize it :thinking: */
-					console.log(\"Video fragment index: \" + num);
-					initVideoContainer();
-
-					function continueStream(e) {
-						initVideoContainer();
+					var streamer = document.getElementById('streamer');
+					var num = streamer.begin + 0;
+					streamer.onended = function(){
+	    				streamer.src = \"/stream\" + (++num) + \".mp4\";
 					}
-
-					function initVideoContainer() {
-						var stream = document.getElementById('stream');
-						stream.removeAttribute('controls');
-						stream.addEventListener('ended', continueStream, true);
-						videoContainer.innerHTML = \"<video id='stream' height='100%' autoplay src='/stream\"+ num +\".mp4'/>\";
-						num += 1;
-					}\
 				"))
 			}
 			"" => {
 				// Serve the script with html
 				let num = STREAM_FILE_COUNTER.read().unwrap().0;
-				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><center><div id='videoContainer' begin='{}'></div></center>{}</body></html>", num, "<script type='text/javascript' src='/script.js'/>")));
+				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><center><video id='stream' height='100%' autoplay src='/stream{}.mp4' begin='{}'/></center>{}</body></html>", num, num, "<script type='text/javascript' src='/script.js'/>")));
 				response.headers.set(headers::ContentType::html());
 
 				response
