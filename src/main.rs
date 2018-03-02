@@ -44,9 +44,8 @@ fn main() {
 				var streamer = document.getElementById('streamer');
 				var num = {};
 				{}</script></body></html>", num, num, "streamer.onended = function(){
-					console.log(\"Fetching new video to play...\");
 					streamer.src = \"/stream\" + (++num) + \".mp4\";
-				}")));
+				}"))); // There is still this immortal white flash when the video switches and it's TRIGGERING MEEEEEEEEEEEE
 				response.headers.set(headers::ContentType::html());
 
 				response
