@@ -40,11 +40,11 @@ fn main() {
 				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><center><video id='streamer' autoplay src='/{}'/ height='100%' width='auto'><img id='bg'/></center><script type='text/javascript'>
 				var streamer = document.getElementById('streamer');
 				var bg = document.getElementById('bg');
-				bg.width = streamer.width;
-				bg.height = streamer.height;
 				var num = {};
 				{}</script></body></html>", num, num + 1, "
 				streamer.onended = function() {
+					bg.width = streamer.width;
+					bg.height = streamer.height;
 					const canvas = document.createElement('canvas');
 					canvas.width = streamer.videoWidth;
 					canvas.height = streamer.videoHeight;
