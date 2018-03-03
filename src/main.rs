@@ -36,20 +36,12 @@ fn main() {
 			"" => {
 				// Serve the script with html
 				let num = STREAM_FILE_COUNTER.read().unwrap().0;
-				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><center><video id='streamer' height='100%' autoplay src='/{}'/></center><script type='text/javascript'>
+				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><center><video id='streamer' height='100%' autoplay><source src='/{}' type='video/mp4'/></video></center><script type='text/javascript'>
 				var streamer = document.getElementById('streamer');
 				var num = {};
-				{}
 				{}</script></body></html>", num, num + 1, "
 				streamer.onended = function(){
-					streamer.src = '/' + num;
-					prefetch('/' + (++num));
-				}
-				", " /* Stripped down version of https://stackoverflow.com/a/18324384 */
-				function prefetch(url) {
-					var xmlhttp = new XMLHttpRequest();
-				    xmlhttp.open(\"GET\", url, true);
-    				xmlhttp.send();
+					streamer.innerHTML += \"<source src='/\" + (++num) + \"' type='video/mp4'/>\";
 				}
 				"))); // There is still this immortal white flash when the video switches and it's TRIGGERING MEEEEEEEEEEEE
 				response.headers.set(headers::ContentType::html());
