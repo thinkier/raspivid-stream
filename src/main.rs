@@ -37,8 +37,9 @@ fn main() {
 			"" => {
 				// Serve the script with html
 				let num = STREAM_FILE_COUNTER.read().unwrap().0;
-				let mut response = Response::with((status::Ok, format!("<!doctype html><html><head><style>{}</style></head><body><video id='streamer' autoplay src='/{}'></video><script type='text/javascript'>
+				let mut response = Response::with((status::Ok, format!("<!doctype html><html><head><style>{}</style></head><body><center id='bg'><video id='streamer' autoplay src='/{}'/></center><script type='text/javascript'>
 				var streamer = document.getElementById('streamer');
+				var bg = document.getElementById('bg');
 				var num = {};
 				{}</script></body></html>", "html{position:relative;min-height:100%;}body{height:100%;}
 #streamer{position:absolute;overflow:hidden;object-fit:fill;top:0;bottom:0;left:0;right:0;}", num, num + 1, "
@@ -48,9 +49,9 @@ fn main() {
 					canvas.height = streamer.videoHeight;
 
 					canvas.getContext('2d').drawImage(streamer, 0, 0);
-					document.body.style.backgroundImage = \"url('\" + canvas.toDataURL('image/png') + \"')\";
+					bg.style.backgroundImage = \"url('\" + canvas.toDataURL('image/png') + \"')\";
 					streamer.style.display = 'none';
-					streamer.src = \"/\" + (num++);
+					setTimeout(function(){streamer.src = \"/\" + (num++);},1);
 				}
 				streamer.onplay = function() {
 					streamer.style.display = 'inline';
