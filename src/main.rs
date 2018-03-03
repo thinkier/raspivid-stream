@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate lazy_static;
+extern crate base64;
 extern crate env_logger;
 extern crate iron;
 
@@ -41,7 +42,17 @@ fn main() {
 				var num = {};
 				{}</script></body></html>", num, num + 1, "
 				streamer.onended = function(){
-					streamer.src = '/' + num;
+					request(num++);
+				}
+				function request(num){
+					var xhr = new XMLHttpRequest();
+					xhr.onreadystatechange = function(){
+						if (xhr.readyState == 4 && xhr.status == 200){
+							streamer.src = \"data:video/mp4;base64,\" + xhr.responseText;
+						}
+					}
+					xhr.open(\"GET\", \"/\" + num + \"?data_url\", true);
+					xhr.send();
 				}
 				"))); // There is still this immortal white flash when the video switches and it's TRIGGERING MEEEEEEEEEEEE
 				response.headers.set(headers::ContentType::html());
@@ -64,11 +75,17 @@ fn main() {
 				if let Ok(mut file) = File::open(&path) {
 					let mut buffer = vec![];
 					let _ = file.read_to_end(&mut buffer);
-					let mut response = Response::with((status::Ok, buffer));
-					response.headers.set(headers::CacheControl(vec![headers::CacheDirective::Public, headers::CacheDirective::MaxAge(60)]));
-					response.headers.set(headers::ContentType("video/mp4".parse().unwrap()));
+					if req.url.query() == Some("data_url") {
+						let mut response = Response::with((status::Ok, base64::encode(&buffer)));
 
-					response
+						response
+					} else {
+						let mut response = Response::with((status::Ok, buffer));
+						response.headers.set(headers::CacheControl(vec![headers::CacheDirective::Public, headers::CacheDirective::MaxAge(60)]));
+						response.headers.set(headers::ContentType("video/mp4".parse().unwrap()));
+
+						response
+					}
 				} else {
 					redir_to_newest_mp4()
 				}
