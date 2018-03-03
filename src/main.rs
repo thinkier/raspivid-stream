@@ -6,7 +6,7 @@ extern crate iron;
 
 use iron::{headers, status};
 use iron::prelude::*;
-use std::env;
+// use std::env;
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::mem::swap;
@@ -168,17 +168,20 @@ fn new_unit_event(mut frame: Vec<u8>, ffmpeg: &mut FFMpeg) {
 			5 => {
 				// Minimum 4 seconds buffer
 				if ffmpeg.nal_units > FRAMERATE * 4 {
-					let mut newinst = FFMpeg::spawn();
-					swap(ffmpeg, &mut newinst);
-				}
+					let mut handle = FFMpeg::spawn();
+					swap(ffmpeg, &mut handle);
+					thread::spawn(move || {
+						let mut counter = STREAM_FILE_COUNTER.write().unwrap();
+						counter.0 += 1;
+						handle.process();
 
-				let mut counter = STREAM_FILE_COUNTER.write().unwrap();
-				counter.0 += 1;
-				let path = format!("{}/{}", STREAM_TMP_DIR, counter.0);
-				let _ = fs::rename(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR), &path);
+						let path = format!("{}/{}", STREAM_TMP_DIR, counter.0);
+						let _ = fs::rename(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR), &path);
 
-				if counter.0 >= 4 {
-					let _ = fs::remove_file(&format!("{}/{}", STREAM_TMP_DIR, counter.0 - 4)); // Delete old
+						if counter.0 >= 4 {
+							let _ = fs::remove_file(&format!("{}/{}", STREAM_TMP_DIR, counter.0 - 4)); // Delete old
+						}
+					});
 				}
 			}
 			7 => H264_NAL_PIC_PARAM.write().unwrap().0 = frame.clone(),
@@ -249,12 +252,16 @@ impl FFMpeg {
 
 		self.nal_units += 1;
 	}
+
+	pub fn process(&mut self) {
+		{ let _ = self.process.stdin.take(); }
+		let _ = self.process.wait();
+	}
 }
 
 impl Drop for FFMpeg {
 	fn drop(&mut self) {
-		{ let _ = self.process.stdin.take(); }
-		let _ = self.process.wait();
+		self.process();
 	}
 }
 
