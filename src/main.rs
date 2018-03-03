@@ -35,14 +35,14 @@ fn main() {
 			"" => {
 				// Serve the script with html
 				let num = STREAM_FILE_COUNTER.read().unwrap().0;
-				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><center><video id='streamer' height='100%' autoplay src='/stream{}.mp4'/></center><script type='text/javascript'>
+				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><center><video id='streamer' height='100%' autoplay src='/{}'/></center><script type='text/javascript'>
 				var streamer = document.getElementById('streamer');
 				var num = {};
 				{}
 				{}</script></body></html>", num, num+1, "
 				streamer.onended = function(){
-					streamer.src = \"/stream\" + num + \".mp4\";
-					callAjax(\"/stream\"+ (++num) + \".mp4\", function() {});
+					streamer.src = '' + num;
+					callAjax(++num, function() {});
 				}
 				", "
 				function callAjax(url, callback){
@@ -73,7 +73,7 @@ fn main() {
 					response
 				} else {
 					let mut response = Response::with(status::TemporaryRedirect);
-					response.headers.set(headers::Location(format!("/stream{}.mp4", STREAM_FILE_COUNTER.read().unwrap().0)));
+					response.headers.set(headers::Location(format!("/{}", STREAM_FILE_COUNTER.read().unwrap().0)));
 
 					response
 				}
@@ -158,11 +158,11 @@ fn new_unit_event(mut frame: Vec<u8>, ffmpeg: &mut FFMpeg) {
 
 				let mut counter = STREAM_FILE_COUNTER.write().unwrap();
 				counter.0 += 1;
-				let path = format!("{}/stream{}.mp4", STREAM_TMP_DIR, counter.0);
+				let path = format!("{}/{}", STREAM_TMP_DIR, counter.0);
 				let _ = fs::rename(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR), &path);
 
 				if counter.0 >= 4 {
-					let _ = fs::remove_file(&format!("{}/stream{}.mp4", STREAM_TMP_DIR, counter.0 - 4)); // Delete old
+					let _ = fs::remove_file(&format!("{}/{}", STREAM_TMP_DIR, counter.0 - 4)); // Delete old
 				}
 			}
 			7 => H264_NAL_PIC_PARAM.write().unwrap().0 = frame.clone(),
