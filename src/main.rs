@@ -49,6 +49,9 @@ fn main() {
 
 				response
 			}
+			"current_code" => {
+				Response::with((status::Ok, format!("{}", STREAM_FILE_COUNTER.read().unwrap().0)))
+			}
 			code => {
 				let code: usize = if let Ok(code) = code.parse() { code } else {
 					return Ok(redir_to_newest_mp4());
@@ -56,7 +59,7 @@ fn main() {
 
 				while {
 					let current_counter = STREAM_FILE_COUNTER.read().unwrap().0;
-					current_counter > code && current_counter - code <= 2
+					current_counter < code && code - current_counter <= 2
 				} {
 					thread::sleep(Duration::from_millis(150));
 				}
