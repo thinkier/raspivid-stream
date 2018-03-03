@@ -41,8 +41,7 @@ fn main() {
 				var streamer = document.getElementById('streamer');
 				var bg = document.getElementById('bg');
 				var num = {};
-				{}</script></body></html>", "html{position:relative;min-height:100%;}body{height:100%;}
-#streamer{position:absolute;overflow:hidden;object-fit:fill;top:0;bottom:0;left:0;right:0;}", num, num + 1, "
+				{}</script></body></html>", "html{position:relative;min-height:100%;}body{height:100%;}#bg{position:absolute;overflow:hidden;top:0;bottom:0;left:0;right:0;}#streamer{object-fit:fill;}", num, num + 1, "
 				streamer.onended = function() {
 					const canvas = document.createElement('canvas');
 					canvas.width = streamer.videoWidth;
