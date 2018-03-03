@@ -68,7 +68,7 @@ fn main() {
 					let mut buffer = vec![];
 					let _ = file.read_to_end(&mut buffer);
 					let mut response = Response::with((status::Ok, buffer));
-					response.headers.set(headers::CacheControl(vec![headers::CacheDirective::MaxAge(60)]));
+					response.headers.set(headers::CacheControl(vec![headers::CacheDirective::Public, headers::CacheDirective::MaxAge(60)]));
 
 					response
 				} else {
