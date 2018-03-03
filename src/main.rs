@@ -58,7 +58,7 @@ fn main() {
 			}
 			code => {
 				let code: usize = if let Ok(code) = code.parse() { code } else {
-					return Ok(return_404());
+					return Ok(redir_to_newest_mp4());
 				};
 
 				while {
@@ -78,7 +78,7 @@ fn main() {
 
 					response
 				} else {
-					return_404()
+					redir_to_newest_mp4()
 				}
 			}
 		}));
@@ -187,7 +187,7 @@ fn get_unit_type(frame: &Vec<u8>) -> u8 {
 	}
 }
 
-fn return_404() -> Response {
+fn redir_to_newest_mp4() -> Response {
 	let mut response = Response::with(status::TemporaryRedirect);
 	response.headers.set(headers::Location(format!("/{}", STREAM_FILE_COUNTER.read().unwrap().0)));
 
