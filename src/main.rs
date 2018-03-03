@@ -37,11 +37,19 @@ fn main() {
 			"" => {
 				// Serve the script with html
 				let num = STREAM_FILE_COUNTER.read().unwrap().0;
-				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><center><video id='streamer' height='100%' autoplay src='/{}'/></center><script type='text/javascript'>
+				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><center><video id='streamer' height='100%' autoplay src='/{}'><img id='freezeFrame' alt='What is going on? IDK!'/></video></center><script type='text/javascript'>
 				var streamer = document.getElementById('streamer');
+				var freezeFrame = document.getElementById('freezeFrame');
 				var num = {};
 				{}</script></body></html>", num, num + 1, "
 				streamer.onended = function(){
+					const canvas = document.createElement('canvas');
+					canvas.width = streamer.videoWidth;
+					canvas.height = streamer.videoHeight;
+
+					canvas.getContext('2d').drawImage(streamer, 0, 0);
+
+					freezeFrame.src = canvas.toDataURL('image/png');
 					streamer.src = \"/\" + (num++);
 				}
 				"))); // There is still this immortal white flash when the video switches and it's TRIGGERING MEEEEEEEEEEEE
