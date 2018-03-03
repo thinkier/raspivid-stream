@@ -215,6 +215,7 @@ impl FFMpeg {
 			.args(vec!["-i", "-"]) // Bind to STDIN
 			.args(vec!["-c:v", "copy"]) // Copy video only
 			.args(vec!["-f", "mp4"]) // Output as mp4
+			.args(vec!["-movflags", "empty_moov"]) // Empty moov so that actually idk what this does lmao
 			.arg(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR))
 			.stdin(process::Stdio::piped())
 			.stdout(process::Stdio::null())
