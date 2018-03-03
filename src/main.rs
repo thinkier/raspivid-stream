@@ -37,18 +37,18 @@ fn main() {
 			"" => {
 				// Serve the script with html
 				let num = STREAM_FILE_COUNTER.read().unwrap().0;
-				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><center id='freezeFrame'><video id='streamer' height='100%' autoplay src='/{}'></video></center><script type='text/javascript'>
+				let mut response = Response::with((status::Ok, format!("<!doctype html><html><head><style>{}</style></head><body><center id='freezeFrame'><video id='streamer' autoplay src='/{}'></video></center><script type='text/javascript'>
 				var streamer = document.getElementById('streamer');
-				var freezeFrame = document.getElementById('freezeFrame');
 				var num = {};
-				{}</script></body></html>", num, num + 1, "
+				{}</script></body></html>", "html{position:relative;min-height:100%;}body{height:100%;}
+#streamer{position:absolute;overflow:hidden;top:0;bottom:0;left:0;right:0;}", num, num + 1, "
 				streamer.onended = function() {
 					const canvas = document.createElement('canvas');
 					canvas.width = streamer.videoWidth;
 					canvas.height = streamer.videoHeight;
 
 					canvas.getContext('2d').drawImage(streamer, 0, 0);
-					freezeFrame.style.backgroundImage = \"url('\" + canvas.toDataURL('image/png') + \"')\";
+					document.body.style.backgroundImage = \"url('\" + canvas.toDataURL('image/png') + \"')\";
 					streamer.style.display = 'none';
 					streamer.src = \"/\" + (num++);
 				}
