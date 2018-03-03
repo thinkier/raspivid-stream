@@ -166,8 +166,8 @@ fn new_unit_event(mut frame: Vec<u8>, ffmpeg: &mut FFMpeg) {
 	loop {
 		match unit_type {
 			5 => {
-				// Minimum 256kb h264 buffer
-				if ffmpeg.nal_units > FRAMERATE * 3 {
+				// Minimum 4 seconds buffer
+				if ffmpeg.nal_units > FRAMERATE * 4 {
 					let mut newinst = FFMpeg::spawn();
 					swap(ffmpeg, &mut newinst);
 				}
