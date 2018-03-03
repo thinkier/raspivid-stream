@@ -1,11 +1,7 @@
-#![feature(fs_read_write)]
-#[macro_use]
-extern crate log;
 #[macro_use]
 extern crate lazy_static;
 extern crate env_logger;
 extern crate iron;
-extern crate time;
 
 use iron::{headers, status};
 use iron::prelude::*;
@@ -17,7 +13,6 @@ use std::ops::Drop;
 use std::process::{self, Child, Command};
 use std::sync::RwLock;
 use std::thread;
-use time::Duration;
 
 const STREAM_TMP_DIR: &'static str = "/tmp/raspivid-stream";
 const FRAMERATE: usize = 20;
@@ -43,9 +38,26 @@ fn main() {
 				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><center><video id='streamer' height='100%' autoplay src='/stream{}.mp4'/></center><script type='text/javascript'>
 				var streamer = document.getElementById('streamer');
 				var num = {};
-				{}</script></body></html>", num, num, "streamer.onended = function(){
-					streamer.src = \"/stream\" + (++num) + \".mp4\";
-				}"))); // There is still this immortal white flash when the video switches and it's TRIGGERING MEEEEEEEEEEEE
+				{}
+				{}</script></body></html>", num, num+1, "
+				streamer.onended = function(){
+					streamer.src = \"/stream\" + num + \".mp4\";
+					callAjax(\"/stream\"+ (++num) + \".mp4\", function() {});
+				}
+				", "
+				function callAjax(url, callback){
+					    var xmlhttp;
+					    // compatible with IE7+, Firefox, Chrome, Opera, Safari
+    					xmlhttp = new XMLHttpRequest();
+    					xmlhttp.onreadystatechange = function(){
+        				if (xmlhttp.readyState == 4 && xmlhttp.status == 200){
+            				callback(xmlhttp.responseText);
+				        }
+				    }
+				    xmlhttp.open(\"GET\", url, true);
+    				xmlhttp.send();
+				}
+				"))); // There is still this immortal white flash when the video switches and it's TRIGGERING MEEEEEEEEEEEE
 				response.headers.set(headers::ContentType::html());
 
 				response
@@ -56,7 +68,7 @@ fn main() {
 					let mut buffer = vec![];
 					let _ = file.read_to_end(&mut buffer);
 					let mut response = Response::with((status::Ok, buffer));
-					response.headers.set(headers::Expires(headers::HttpDate(time::now() + Duration::seconds(1))));
+					response.headers.set(headers::CacheControl(vec![headers::CacheDirective::MaxAge(60)]));
 
 					response
 				} else {
