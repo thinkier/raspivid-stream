@@ -37,11 +37,13 @@ fn main() {
 			"" => {
 				// Serve the script with html
 				let num = STREAM_FILE_COUNTER.read().unwrap().0;
-				let mut response = Response::with((status::Ok, format!("<!doctype html><html><head><style>{}</style></head><body><center id='bg'><video id='streamer' autoplay src='/{}'/></center><script type='text/javascript'>
+				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><center id='bg'><video id='streamer' autoplay src='/{}'/ height='100%' width='auto'></center><script type='text/javascript'>
 				var streamer = document.getElementById('streamer');
 				var bg = document.getElementById('bg');
+				bg.width = streamer.width;
+				bg.height = streamer.height;
 				var num = {};
-				{}</script></body></html>", "html{position:relative;min-height:100%;}body{height:100%;}#bg{position:absolute;overflow:hidden;top:0;bottom:0;left:0;right:0;}#streamer{object-fit:fill;}", num, num + 1, "
+				{}</script></body></html>", num, num + 1, "
 				streamer.onended = function() {
 					const canvas = document.createElement('canvas');
 					canvas.width = streamer.videoWidth;
