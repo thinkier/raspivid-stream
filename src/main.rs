@@ -68,12 +68,13 @@ fn main() {
 					thread::sleep(Duration::from_millis(150));
 				}
 
-				let path = format!("{}/stream{}.mp4", STREAM_TMP_DIR, code);
+				let path = format!("{}/{}", STREAM_TMP_DIR, code);
 				if let Ok(mut file) = File::open(&path) {
 					let mut buffer = vec![];
 					let _ = file.read_to_end(&mut buffer);
 					let mut response = Response::with((status::Ok, buffer));
 					response.headers.set(headers::CacheControl(vec![headers::CacheDirective::Public, headers::CacheDirective::MaxAge(60)]));
+					response.headers.set(headers::ContentType("video/mp4".parse().unwrap()));
 
 					response
 				} else {
