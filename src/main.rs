@@ -37,7 +37,7 @@ fn main() {
 			"" => {
 				// Serve the script with html
 				let num = STREAM_FILE_COUNTER.read().unwrap().0;
-				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><center><video id='streamer' autoplay src='/{}'/ height='100%' width='auto'><img id='bg'/></center><script type='text/javascript'>
+				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><center><video id='streamer' autoplay src='/{}'/ height='100%' width='auto'></video><img id='bg'/></center><script type='text/javascript'>
 				var streamer = document.getElementById('streamer');
 				var bg = document.getElementById('bg');
 				var num = {};
