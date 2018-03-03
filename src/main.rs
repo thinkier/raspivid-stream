@@ -42,19 +42,12 @@ fn main() {
 				{}
 				{}</script></body></html>", num, num + 1, "
 				streamer.onended = function(){
-					streamer.src = '' + num;
-					callAjax(++num, function() {});
+					streamer.src = '/' + num;
+					prefetch('/' + (++num));
 				}
-				", "
-				function callAjax(url, callback){
-					    var xmlhttp;
-					    // compatible with IE7+, Firefox, Chrome, Opera, Safari
-    					xmlhttp = new XMLHttpRequest();
-    					xmlhttp.onreadystatechange = function(){
-        				if (xmlhttp.readyState == 4 && xmlhttp.status == 200){
-            				callback(xmlhttp.responseText);
-				        }
-				    }
+				", " /* Stripped down version of https://stackoverflow.com/a/18324384 */
+				function prefetch(url) {
+					var xmlhttp = new XMLHttpRequest();
 				    xmlhttp.open(\"GET\", url, true);
     				xmlhttp.send();
 				}
