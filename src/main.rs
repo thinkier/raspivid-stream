@@ -42,7 +42,7 @@ fn main() {
 				var freezeFrame = document.getElementById('freezeFrame');
 				var num = {};
 				{}</script></body></html>", num, num + 1, "
-				streamer.onended = function(){
+				streamer.onended = function() {
 					const canvas = document.createElement('canvas');
 					canvas.width = streamer.videoWidth;
 					canvas.height = streamer.videoHeight;
@@ -50,7 +50,12 @@ fn main() {
 					canvas.getContext('2d').drawImage(streamer, 0, 0);
 
 					freezeFrame.src = canvas.toDataURL('image/png');
+					streamer.style.display = 'none';
 					streamer.src = \"/\" + (num++);
+				}
+				streamer.onplay = function() {
+					streamer.style.display = 'inline';
+					freezeFrame.src = \"\";
 				}
 				"))); // There is still this immortal white flash when the video switches and it's TRIGGERING MEEEEEEEEEEEE
 				response.headers.set(headers::ContentType::html());
