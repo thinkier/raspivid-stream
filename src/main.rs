@@ -108,8 +108,8 @@ fn main() {
 			.args(vec!["-fps", &format!("{}", FRAMERATE)]) // Framerate
 			.args(vec!["-t", "7200000"]) // Stay on for a 2 hours instead of quickly exiting
 			.args(vec!["-rot", "90"]) // Rotate 90 degrees as the device is sitting sideways.
-			.args(vec!["-a", "4"]) // Output time
-			.args(vec!["-a", &format!("Device: {} | %F %X %Z", env::var("HOSTNAME").unwrap_or("unknown".to_string()))]) // Supplementary argument hmm rn it requires an additional `export` command
+//			.args(vec!["-a", "4"]) // Output time
+//			.args(vec!["-a", &format!("Device: {} | %F %X %Z", env::var("HOSTNAME").unwrap_or("unknown".to_string()))]) // Supplementary argument hmm rn it requires an additional `export` command
 			.stdin(process::Stdio::null())
 			.stdout(process::Stdio::piped())
 			.spawn() { child } else { panic!("Failed to spawn raspivid process."); };
