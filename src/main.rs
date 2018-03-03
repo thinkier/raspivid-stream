@@ -43,19 +43,21 @@ fn main() {
 				var num = {};
 				{}</script></body></html>", num, num + 1, "
 				streamer.onended = function() {
-					bg.width = streamer.width;
-					bg.height = streamer.height;
 					const canvas = document.createElement('canvas');
 					canvas.width = streamer.videoWidth;
 					canvas.height = streamer.videoHeight;
 
 					canvas.getContext('2d').drawImage(streamer, 0, 0);
 					bg.style.backgroundImage = \"url('\" + canvas.toDataURL('image/png') + \"')\";
+					bg.style.display = 'inline';
 					streamer.style.display = 'none';
 					setTimeout(function(){streamer.src = \"/\" + (num++);},1);
 				}
 				streamer.onplay = function() {
 					streamer.style.display = 'inline';
+					bg.style.display = 'none';
+					bg.width = streamer.videoWidth;
+					bg.height = streamer.videoHeight;
 				}
 				"))); // There is still this immortal white flash when the video switches and it's TRIGGERING MEEEEEEEEEEEE
 				response.headers.set(headers::ContentType::html());
