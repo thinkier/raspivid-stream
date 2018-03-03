@@ -13,6 +13,7 @@ use std::ops::Drop;
 use std::process::{self, Child, Command};
 use std::sync::RwLock;
 use std::thread;
+use std::time::Duration;
 
 const STREAM_TMP_DIR: &'static str = "/tmp/raspivid-stream";
 const FRAMERATE: usize = 20;
@@ -39,7 +40,7 @@ fn main() {
 				var streamer = document.getElementById('streamer');
 				var num = {};
 				{}
-				{}</script></body></html>", num, num+1, "
+				{}</script></body></html>", num, num + 1, "
 				streamer.onended = function(){
 					streamer.src = '' + num;
 					callAjax(++num, function() {});
@@ -62,8 +63,19 @@ fn main() {
 
 				response
 			}
-			custom_file => {
-				let path = format!("{}/{}", STREAM_TMP_DIR, custom_file);
+			code => {
+				let code: usize = if let Ok(code) = code.parse() { code } else {
+					return Ok(return_404());
+				};
+
+				while {
+					let current_counter = STREAM_FILE_COUNTER.read().unwrap().0;
+					current_counter > code && current_counter - code <= 2
+				} {
+					thread::sleep(Duration::from_millis(150));
+				}
+
+				let path = format!("{}/stream{}.mp4", STREAM_TMP_DIR, code);
 				if let Ok(mut file) = File::open(&path) {
 					let mut buffer = vec![];
 					let _ = file.read_to_end(&mut buffer);
@@ -72,10 +84,7 @@ fn main() {
 
 					response
 				} else {
-					let mut response = Response::with(status::TemporaryRedirect);
-					response.headers.set(headers::Location(format!("/{}", STREAM_FILE_COUNTER.read().unwrap().0)));
-
-					response
+					return_404()
 				}
 			}
 		}));
@@ -182,6 +191,13 @@ fn get_unit_type(frame: &Vec<u8>) -> u8 {
 	} else {
 		buffer[3]
 	}
+}
+
+fn return_404() -> Response {
+	let mut response = Response::with(status::TemporaryRedirect);
+	response.headers.set(headers::Location(format!("/{}", STREAM_FILE_COUNTER.read().unwrap().0)));
+
+	response
 }
 
 struct FFMpeg {
