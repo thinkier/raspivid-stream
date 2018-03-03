@@ -42,17 +42,7 @@ fn main() {
 				var num = {};
 				{}</script></body></html>", num, num + 1, "
 				streamer.onended = function(){
-					request(num++);
-				}
-				function request(num){
-					var xhr = new XMLHttpRequest();
-					xhr.onreadystatechange = function(){
-						if (xhr.readyState == 4 && xhr.status == 200){
-							streamer.src = \"data:video/mp4;base64,\" + xhr.responseText;
-						}
-					}
-					xhr.open(\"GET\", \"/\" + num + \"?data_url\", true);
-					xhr.send();
+					streamer.src = \"/\" + (num++);
 				}
 				"))); // There is still this immortal white flash when the video switches and it's TRIGGERING MEEEEEEEEEEEE
 				response.headers.set(headers::ContentType::html());
