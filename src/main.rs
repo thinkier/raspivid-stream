@@ -43,12 +43,11 @@ fn main() {
 				function register(streamer, num){
 					streamer.onended = function() {
 						var newStreamer = document.createElement('video');
-						newStreamer.style.display = 'none';
 						streamer.parentNode.appendChild(newStreamer);
 						newStreamer.id = 'streamer' + num;
 						newStreamer.autoplay = true;
 						newStreamer.src = '/' + num;
-						newStreamer.style = 'width:100%;height:auto;';
+						newStreamer.style = 'width:100%;height:auto;display:none;';
 						newStreamer.onplay = function() {
 							streamer.parentNode.removeChild(streamer);
 							newStreamer.style.display = 'inline';
