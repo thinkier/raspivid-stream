@@ -48,8 +48,7 @@ fn main() {
 						newStreamer.id = 'streamer' + num;
 						newStreamer.autoplay = true;
 						newStreamer.src = '/' + num;
-						newStreamer.height = '100%';
-						newStreamer.width = 'auto';
+						newStreamer.style = 'width:100%;height:auto;';
 						newStreamer.onplay = function() {
 							streamer.parentNode.removeChild(streamer);
 							newStreamer.style.display = 'inline';
