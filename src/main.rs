@@ -39,13 +39,12 @@ fn main() {
 				let num = STREAM_FILE_COUNTER.read().unwrap().0;
 				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><center><video id='streamer{}' autoplay src='/{}'/ height='100%' width='auto'></video></center><script type='text/javascript'>
 				var streamer = document.getElementById('streamer{}');
-				var newStreamer = streamer;
 				var bg = document.getElementById('bg');
 				var num = {};
 				{}</script></body></html>", num, num, num, num + 1, "
 				function register(){
 					streamer.onended = function() {
-						newStreamer = document.createElement('video');
+						var newStreamer = document.createElement('video');
 						newStreamer.style.display = 'none';
 						newStreamer.innerHTML = \"<video id='streamer\"+num+\"' autoplay src='/\"+num+\"'/ height='100%' width='auto'></video>\";
 						newStreamer.onplay = function() {
@@ -54,7 +53,7 @@ fn main() {
 							streamer.style.display = 'inline';
 							register();
 						}
-						streamer.parentNode.appendChild(new_streamer);
+						streamer.parentNode.appendChild(newStreamer);
 						num++;
 					}
 				}
