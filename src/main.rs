@@ -37,27 +37,26 @@ fn main() {
 			"" => {
 				// Serve the script with html
 				let num = STREAM_FILE_COUNTER.read().unwrap().0;
-				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><center><video id='streamer' autoplay src='/{}'/ height='100%' width='auto'></video><img id='bg'/></center><script type='text/javascript'>
-				var streamer = document.getElementById('streamer');
+				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><center><video id='streamer{}' autoplay src='/{}'/ height='100%' width='auto'></video></center><script type='text/javascript'>
+				var streamer = document.getElementById('streamer{}');
+				var newStreamer = streamer;
 				var bg = document.getElementById('bg');
 				var num = {};
-				{}</script></body></html>", num, num + 1, "
-				streamer.onended = function() {
-					const canvas = document.createElement('canvas');
-					canvas.width = streamer.videoWidth;
-					canvas.height = streamer.videoHeight;
-
-					canvas.getContext('2d').drawImage(streamer, 0, 0);
-					bg.style.backgroundImage = \"url('\" + canvas.toDataURL('image/png') + \"')\";
-					bg.style.display = 'inline';
-					streamer.style.display = 'none';
-					setTimeout(function(){streamer.src = \"/\" + (num++);},1);
-				}
-				streamer.onplay = function() {
-					streamer.style.display = 'inline';
-					bg.style.display = 'none';
-					bg.width = streamer.videoWidth;
-					bg.height = streamer.videoHeight;
+				{}</script></body></html>", num, num, num, num + 1, "
+				function registerOnEnd(){
+					streamer.onended = function() {
+						newStreamer = document.createElement('video');
+						newStreamer.style.display = 'none';
+						newStreamer.innerHTML = \"<video id='streamer\"+num+\"' autoplay src='/\"+num+\"'/ height='100%' width='auto'></video>\";
+						newStreamer.onplay = function() {
+							streamer.parentNode.removeChild(streamer);
+							streamer = newStreamer;
+							streamer.style.display = 'inline';
+							registerOnEnd();
+						}
+						streamer.parentNode.appendChild(new_streamer);
+						num++;
+					}
 				}
 				"))); // There is still this immortal white flash when the video switches and it's TRIGGERING MEEEEEEEEEEEE
 				response.headers.set(headers::ContentType::html());
