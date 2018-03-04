@@ -44,13 +44,13 @@ fn main() {
 					streamer.onended = function() {
 						var newStreamer = document.createElement('video');
 						newStreamer.style.display = 'none';
+						streamer.parentNode.appendChild(newStreamer);
 						newStreamer.innerHTML = \"<video id='streamer\"+num+\"' autoplay src='/\"+num+\"'/ height='100%' width='auto'></video>\";
 						newStreamer.onplay = function() {
 							streamer.parentNode.removeChild(streamer);
 							newStreamer.style.display = 'inline';
 							register(newStreamer, num + 1);
-						}
-						streamer.parentNode.appendChild(newStreamer);
+						};
 						num++;
 					}
 				}
