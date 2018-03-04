@@ -32,7 +32,7 @@ fn main() {
 	env_logger::init();
 	clean_tmp_dir();
 
-	thread::spawn(|| { // TODO Migrate to serving jpegs in 50ms intervals, because there is no way serving video is feasible without that FUCKING WHITE FLASH
+	thread::spawn(|| {
 		let mut iron = Iron::new(|req: &mut Request| Ok(match req.url.path().pop().unwrap_or("") {
 			"" => {
 				// Serve the script with html
