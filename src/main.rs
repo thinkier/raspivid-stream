@@ -45,7 +45,11 @@ fn main() {
 						var newStreamer = document.createElement('video');
 						newStreamer.style.display = 'none';
 						streamer.parentNode.appendChild(newStreamer);
-						newStreamer.innerHTML = \"<video id='streamer\"+num+\"' autoplay src='/\"+num+\"'/ height='100%' width='auto'></video>\";
+						newStreamer.id = 'streamer' + num;
+						newStreamer.autoplay = true;
+						newStreamer.src = '/' + num;
+						newStreamer.height = '100%';
+						newStreamer.width = 'auto';
 						newStreamer.onplay = function() {
 							streamer.parentNode.removeChild(streamer);
 							newStreamer.style.display = 'inline';
