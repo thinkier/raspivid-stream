@@ -43,7 +43,7 @@ fn main() {
 				var bg = document.getElementById('bg');
 				var num = {};
 				{}</script></body></html>", num, num, num, num + 1, "
-				function registerOnEnd(){
+				function register(){
 					streamer.onended = function() {
 						newStreamer = document.createElement('video');
 						newStreamer.style.display = 'none';
@@ -52,12 +52,13 @@ fn main() {
 							streamer.parentNode.removeChild(streamer);
 							streamer = newStreamer;
 							streamer.style.display = 'inline';
-							registerOnEnd();
+							register();
 						}
 						streamer.parentNode.appendChild(new_streamer);
 						num++;
 					}
 				}
+				register();
 				"))); // There is still this immortal white flash when the video switches and it's TRIGGERING MEEEEEEEEEEEE
 				response.headers.set(headers::ContentType::html());
 
