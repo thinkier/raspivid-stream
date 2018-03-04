@@ -38,26 +38,22 @@ fn main() {
 				// Serve the script with html
 				let num = STREAM_FILE_COUNTER.read().unwrap().0;
 				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><center><video id='streamer{}' autoplay src='/{}'/ height='100%' width='auto'></video></center><script type='text/javascript'>
-				var streamer = document.getElementById('streamer{}');
-				var bg = document.getElementById('bg');
-				var num = {};
+				register(document.getElementById('streamer{}'), {});
 				{}</script></body></html>", num, num, num, num + 1, "
-				function register(){
+				function register(streamer, num){
 					streamer.onended = function() {
 						var newStreamer = document.createElement('video');
 						newStreamer.style.display = 'none';
 						newStreamer.innerHTML = \"<video id='streamer\"+num+\"' autoplay src='/\"+num+\"'/ height='100%' width='auto'></video>\";
 						newStreamer.onplay = function() {
 							streamer.parentNode.removeChild(streamer);
-							streamer = newStreamer;
-							streamer.style.display = 'inline';
-							register();
+							newStreamer.style.display = 'inline';
+							register(newStreamer, num + 1);
 						}
 						streamer.parentNode.appendChild(newStreamer);
 						num++;
 					}
 				}
-				register();
 				"))); // There is still this immortal white flash when the video switches and it's TRIGGERING MEEEEEEEEEEEE
 				response.headers.set(headers::ContentType::html());
 
