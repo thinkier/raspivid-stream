@@ -56,7 +56,7 @@ fn main() {
 						num++;
 					}
 				}
-				"))); // There is still this immortal white flash when the video switches and it's TRIGGERING MEEEEEEEEEEEE
+				")));
 				response.headers.set(headers::ContentType::html());
 
 				response
