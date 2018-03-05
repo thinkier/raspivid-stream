@@ -4,7 +4,7 @@ extern crate toml;
 use std::fs::File;
 use std::io::Read;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
 	#[serde(default)]
 	pub http: HttpConfig,
@@ -33,7 +33,7 @@ impl Config {
 	}
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct HttpConfig {
 	#[serde(default)]
 	pub bind_addr: String
@@ -47,7 +47,7 @@ impl Default for HttpConfig {
 	}
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct RaspividConfig {
 	#[serde(default)]
 	pub width: u16,
