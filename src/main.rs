@@ -28,7 +28,9 @@ fn main() {
 	env_logger::init();
 	clean_tmp_dir();
 
-	let _ = thread::Builder::new().name("iron handle".to_string()).spawn(|| {
+	let _ = thread::Builder::new().name("iron serv".to_string()).spawn(|| {
+		thread::sleep(Duration::from_secs(5));
+
 		let mut iron = Iron::new(|req: &mut Request| Ok(match req.url.path().pop().unwrap_or("") {
 			"" => {
 				// Serve the script with html
@@ -37,10 +39,6 @@ fn main() {
 				register(document.getElementById('streamer{}'), {});
 				{}</script></body></html>", num, num, num, num + 1, "
 				function register(streamer, num){
-					streamer.ontimeupdate = function() {
-						if (streamer.duration - streamer.currentTime < 1) {
-						}
-					};
 					streamer.onended = function() {
 						var newStreamer = document.createElement('video');
 						streamer.parentNode.appendChild(newStreamer);
@@ -70,7 +68,7 @@ fn main() {
 
 				while {
 					let current_counter = STREAM_FILE_COUNTER.read().unwrap().0;
-					current_counter < 1 || current_counter < code && code - current_counter <= 2
+					current_counter < code && code - current_counter <= 2
 				} {
 					thread::sleep(Duration::from_millis(150));
 				}
