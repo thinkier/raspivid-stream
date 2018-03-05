@@ -4,12 +4,14 @@ use self::iron::{headers, status};
 use self::iron::prelude::*;
 use std::fs::File;
 use std::io::Read;
+use std::net::SocketAddr;
 use std::thread;
 use std::time::Duration;
-use super::{STREAM_FILE_COUNTER, STREAM_TMP_DIR};
+use super::{CONFIG, STREAM_FILE_COUNTER, STREAM_TMP_DIR};
 
 pub fn init_iron() {
 	let _ = thread::Builder::new().name("iron serv".to_string()).spawn(|| {
+		let addr: SocketAddr = CONFIG.read().unwrap().http.bind_addr.parse().expect("invalid bind address");
 		info!("Starting iron and serving video over HTTP.");
 
 		let mut iron = Iron::new(|req: &mut Request| Ok(match req.url.path().pop().unwrap_or("") {
@@ -69,7 +71,7 @@ pub fn init_iron() {
 			}
 		}));
 		iron.threads = 8usize;
-		iron.http("0.0.0.0:3128").unwrap();
+		let _ = iron.http(addr);
 	});
 }
 

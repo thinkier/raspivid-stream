@@ -2,7 +2,7 @@ use std::io::Write;
 use std::mem::swap;
 use std::ops::Drop;
 use std::process::{self, Child, Command};
-use super::{FRAMERATE, STREAM_TMP_DIR};
+use super::{CONFIG, STREAM_TMP_DIR};
 
 pub trait StreamProcessor {
 	fn spawn() -> Self;
@@ -70,7 +70,7 @@ impl StreamProcessor for FFMpeg {
 	}
 
 	fn is_saturated(&self) -> bool {
-		self.nal_units > FRAMERATE * 4
+		self.nal_units > CONFIG.read().unwrap().raspivid.framerate as usize * 4
 	}
 }
 
