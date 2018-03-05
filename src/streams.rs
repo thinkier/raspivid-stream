@@ -2,7 +2,7 @@ use std::io::Write;
 use std::mem::swap;
 use std::ops::Drop;
 use std::process::{self, Child, Command};
-use super::{FRAMERATE,STREAM_TMP_DIR};
+use super::{FRAMERATE, STREAM_TMP_DIR};
 
 pub trait StreamProcessor {
 	fn spawn() -> Self;
