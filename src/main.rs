@@ -223,7 +223,7 @@ trait StreamProcessor {
 	fn is_saturated(&self) -> bool;
 }
 
-/// Literally does nothing but be a phantom class
+/// Literally does nothing but be a router class in case footage can be dropped because noone is watching
 struct Null;
 
 impl StreamProcessor for Null {
