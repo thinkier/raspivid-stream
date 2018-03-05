@@ -233,7 +233,7 @@ impl StreamProcessor for Null {
 		Null {}
 	}
 
-	fn write(&mut self, buf: &mut Vec<u8>) {}
+	fn write(&mut self, _buf: &mut Vec<u8>) {}
 
 	fn process(&mut self) {}
 }
