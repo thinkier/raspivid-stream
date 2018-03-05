@@ -238,7 +238,7 @@ impl StreamProcessor for Null {
 
 /// Handle the stream and convert to mp4 for FFMpeg
 struct FFMpeg {
-	pub process: Child,
+	process: Child,
 	nal_units: usize,
 }
 
