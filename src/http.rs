@@ -30,10 +30,12 @@ pub fn init_iron() {
 						newStreamer.src = '/' + num;
 						newStreamer.style = 'width:100%;height:auto;display:none;';
 						newStreamer.onplay = function() {
+						document.body.style.backgroundColor = 0x00FF00;
 							streamer.parentNode.removeChild(streamer);
 							newStreamer.style.display = 'inline';
 							register(newStreamer, num + 1);
 						};
+						document.body.style.backgroundColor = 0xFF0000;
 					}
 				}
 				")));
