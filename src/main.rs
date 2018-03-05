@@ -53,7 +53,6 @@ fn main() {
 							newStreamer.style.display = 'inline';
 							register(newStreamer, num + 1);
 						};
-						num++;
 					}
 				}
 				")));
