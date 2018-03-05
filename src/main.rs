@@ -33,6 +33,8 @@ lazy_static! {
 
 fn main() {
 	env_logger::init();
+	{ info!("Config: {:?}", CONFIG.read().unwrap()); }
+
 	clean_tmp_dir();
 
 	http::init_iron();
@@ -44,7 +46,7 @@ fn main() {
 			if let Ok(child) = Command::new("raspivid")
 				.args(vec!["-o", "-"]) // Output to STDOUT
 				.args(vec!["-t", "7200000"]) // Stay on for a 2 hours instead of quickly exiting
-				.args(vec!["-rot", &format!("{}", raspivid_cfg.rotation)]) // Rotate 90 degrees as the device is sitting sideways.
+				.args(vec!["-rot", &format!("{}", raspivid_cfg.rotation)]) // Rotation for orientation problems
 				.args(vec!["-w", &format!("{}", raspivid_cfg.width)]) // Width
 				.args(vec!["-h", &format!("{}", raspivid_cfg.height)]) // Height
 				.args(vec!["-fps", &format!("{}", raspivid_cfg.framerate)]) // Framerate
