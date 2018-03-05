@@ -22,9 +22,6 @@ const FRAMERATE: usize = 20;
 struct Singleton<T>(T);
 
 lazy_static! {
-	// All H264 stuff can be moved into a reference passed around with new frame events
-	static ref H264_NAL_PIC_PARAM: RwLock<Singleton<Vec<u8>>> = RwLock::new(Singleton(vec![]));
-	static ref H264_NAL_SEQ_PARAM: RwLock<Singleton<Vec<u8>>> = RwLock::new(Singleton(vec![]));
 	static ref STREAM_FILE_COUNTER: RwLock<Singleton<usize>> = RwLock::new(Singleton(0));
 }
 
@@ -124,13 +121,16 @@ fn main() {
 			panic!("Failed to attach to raspivid's STDOUT")
 		});
 
+		let mut pic_param = vec![];
+		let mut seq_param = vec![];
+
 		while let Ok(None) = child.try_wait() {
-			split_stream(&mut child_stdout, &mut ffmpeg);
+			split_stream(&mut child_stdout, &mut ffmpeg, &mut pic_param, &mut seq_param);
 		}
 	}
 }
 
-fn split_stream<R: Read>(input_stream: &mut R, mut ffmpeg: &mut FFMpeg) {
+fn split_stream<R: Read>(input_stream: &mut R, ffmpeg: &mut FFMpeg, pic_param: &mut Vec<u8>, seq_param: &mut Vec<u8>) {
 	let mut nulls: usize = 0;
 	let mut nal_unit: Vec<u8> = vec![];
 	let mut buffer = [0u8; 8192];
@@ -154,7 +154,7 @@ fn split_stream<R: Read>(input_stream: &mut R, mut ffmpeg: &mut FFMpeg) {
 						nulls - i
 					};
 					if nal_unit.len() > 0 {
-						new_unit_event(nal_unit, &mut ffmpeg);
+						new_unit_event(nal_unit, ffmpeg, pic_param, seq_param);
 						nal_unit = vec![0; null_pads];
 					}
 				}
@@ -166,7 +166,7 @@ fn split_stream<R: Read>(input_stream: &mut R, mut ffmpeg: &mut FFMpeg) {
 	}
 }
 
-fn new_unit_event(mut frame: Vec<u8>, ffmpeg: &mut FFMpeg) {
+fn new_unit_event(mut frame: Vec<u8>, ffmpeg: &mut FFMpeg, pic_param: &mut Vec<u8>, seq_param: &mut Vec<u8>) {
 	let unit_type = get_unit_type(&frame);
 	loop {
 		match unit_type {
@@ -174,6 +174,10 @@ fn new_unit_event(mut frame: Vec<u8>, ffmpeg: &mut FFMpeg) {
 				// Minimum 4 seconds buffer
 				if ffmpeg.nal_units > FRAMERATE * 4 {
 					let mut handle = FFMpeg::spawn();
+
+					handle.write(pic_param);
+					handle.write(seq_param);
+
 					swap(ffmpeg, &mut handle);
 					thread::spawn(move || {
 						let mut counter = STREAM_FILE_COUNTER.write().unwrap();
@@ -189,8 +193,8 @@ fn new_unit_event(mut frame: Vec<u8>, ffmpeg: &mut FFMpeg) {
 					});
 				}
 			}
-			7 => H264_NAL_PIC_PARAM.write().unwrap().0 = frame.clone(),
-			8 => H264_NAL_SEQ_PARAM.write().unwrap().0 = frame.clone(),
+			7 => pic_param.extend(&frame[..]),
+			8 => seq_param.extend(&frame[..]),
 			_ => {}
 		}
 		break;
@@ -254,15 +258,7 @@ impl StreamProcessor for FFMpeg {
 			.spawn()
 			.expect("Failed to spawn ffmpeg process.");
 
-		let mut ffmpeg = FFMpeg { process, nal_units: 0 };
-
-		for param in vec![H264_NAL_PIC_PARAM.read().unwrap(), H264_NAL_SEQ_PARAM.read().unwrap()] {
-			if param.0.len() > 0 {
-				ffmpeg.write(&mut param.0.clone());
-			}
-		}
-
-		return ffmpeg;
+		FFMpeg { process, nal_units: 0 }
 	}
 
 	fn write(&mut self, buf: &mut Vec<u8>) {
