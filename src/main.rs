@@ -92,11 +92,10 @@ fn main() {
 
 								swap(ffmpeg, &mut handle);
 								let _ = thread::Builder::new().name("ffmpeg handle".to_string()).spawn(move || {
-									let counter = {
-										let mut ptr = STREAM_FILE_COUNTER.write().unwrap();
-										ptr.0 += 1;
-										ptr.0
-									};
+									let mut ptr = STREAM_FILE_COUNTER.write().unwrap();
+									ptr.0 += 1;
+									let counter = ptr.0;
+
 									handle.process();
 
 									let path = format!("{}/{}", STREAM_TMP_DIR, counter);
