@@ -1,5 +1,7 @@
 #[macro_use]
 extern crate lazy_static;
+#[macro_use]
+extern crate log;
 extern crate env_logger;
 extern crate iron;
 
@@ -30,6 +32,7 @@ fn main() {
 
 	let _ = thread::Builder::new().name("iron serv".to_string()).spawn(|| {
 		thread::sleep(Duration::from_secs(5));
+		info!("Starting iron and serving video over HTTP.");
 
 		let mut iron = Iron::new(|req: &mut Request| Ok(match req.url.path().pop().unwrap_or("") {
 			"" => {
@@ -105,6 +108,7 @@ fn main() {
 			.stdin(process::Stdio::null())
 			.stdout(process::Stdio::piped())
 			.spawn() { child } else { panic!("Failed to spawn raspivid process."); };
+		info!("Loaded raspivid instance.");
 
 		let mut child_stdout = child.stdout.take().unwrap_or_else(|| {
 			let _ = child.kill();
@@ -176,6 +180,7 @@ fn new_unit_event(mut frame: Vec<u8>, ffmpeg: &mut FFMpeg, pic_param: &mut Vec<u
 
 						let path = format!("{}/{}", STREAM_TMP_DIR, counter);
 						let _ = fs::rename(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR), &path);
+						info!("Outputted new mp4 file at {}", path);
 
 						if counter >= 4 {
 							let _ = fs::remove_file(&format!("{}/{}", STREAM_TMP_DIR, counter - 4)); // Delete old
@@ -253,6 +258,7 @@ impl StreamProcessor for FFMpeg {
 			.spawn()
 			.expect("Failed to spawn ffmpeg process.");
 
+		info!("Loaded ffmpeg instance.");
 		FFMpeg { process, nal_units: 0 }
 	}
 
