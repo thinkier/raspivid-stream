@@ -28,70 +28,68 @@ fn main() {
 	env_logger::init();
 	clean_tmp_dir();
 
-	thread::spawn(|| {
-		let mut iron = Iron::new(|req: &mut Request| Ok(match req.url.path().pop().unwrap_or("") {
-			"" => {
-				// Serve the script with html
-				let num = STREAM_FILE_COUNTER.read().unwrap().0;
-				let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><center><video id='streamer{}' autoplay src='/{}'/ style='width:100%;height:auto;'></video></center><script type='text/javascript'>
-				register(document.getElementById('streamer{}'), {});
-				{}</script></body></html>", num, num, num, num + 1, "
-				function register(streamer, num){
-					streamer.ontimeupdate = function() {
-						if (streamer.duration - streamer.currentTime < 1) {
-						}
-					};
-					streamer.onended = function() {
-						var newStreamer = document.createElement('video');
-						streamer.parentNode.appendChild(newStreamer);
-						newStreamer.id = 'streamer' + num;
-						newStreamer.autoplay = true;
-						newStreamer.src = '/' + num;
-						newStreamer.style = 'width:100%;height:auto;display:none;';
-						newStreamer.onplay = function() {
-							streamer.parentNode.removeChild(streamer);
-							newStreamer.style.display = 'inline';
-							register(newStreamer, num + 1);
-						};
+	let mut iron = Iron::new(|req: &mut Request| Ok(match req.url.path().pop().unwrap_or("") {
+		"" => {
+			// Serve the script with html
+			let num = STREAM_FILE_COUNTER.read().unwrap().0;
+			let mut response = Response::with((status::Ok, format!("<!doctype html><html><body><center><video id='streamer{}' autoplay src='/{}'/ style='width:100%;height:auto;'></video></center><script type='text/javascript'>
+			register(document.getElementById('streamer{}'), {});
+			{}</script></body></html>", num, num, num, num + 1, "
+			function register(streamer, num){
+				streamer.ontimeupdate = function() {
+					if (streamer.duration - streamer.currentTime < 1) {
 					}
+				};
+				streamer.onended = function() {
+					var newStreamer = document.createElement('video');
+					streamer.parentNode.appendChild(newStreamer);
+					newStreamer.id = 'streamer' + num;
+					newStreamer.autoplay = true;
+					newStreamer.src = '/' + num;
+					newStreamer.style = 'width:100%;height:auto;display:none;';
+					newStreamer.onplay = function() {
+						streamer.parentNode.removeChild(streamer);
+						newStreamer.style.display = 'inline';
+						register(newStreamer, num + 1);
+					};
 				}
-				")));
-				response.headers.set(headers::ContentType::html());
+			}
+			")));
+			response.headers.set(headers::ContentType::html());
+
+			response
+		}
+		"current_code" => {
+			Response::with((status::Ok, format!("{}", STREAM_FILE_COUNTER.read().unwrap().0)))
+		}
+		code => {
+			let code: usize = if let Ok(code) = code.parse() { code } else {
+				return Ok(redir_to_newest_mp4());
+			};
+
+			while {
+				let current_counter = STREAM_FILE_COUNTER.read().unwrap().0;
+				current_counter < 1 || current_counter < code && code - current_counter <= 2
+			} {
+				thread::sleep(Duration::from_millis(150));
+			}
+
+			let path = format!("{}/{}", STREAM_TMP_DIR, code);
+			if let Ok(mut file) = File::open(&path) {
+				let mut buffer = vec![];
+				let _ = file.read_to_end(&mut buffer);
+				let mut response = Response::with((status::Ok, buffer));
+				response.headers.set(headers::CacheControl(vec![headers::CacheDirective::Public, headers::CacheDirective::MaxAge(60)]));
+				response.headers.set(headers::ContentType("video/mp4".parse().unwrap()));
 
 				response
+			} else {
+				redir_to_newest_mp4()
 			}
-			"current_code" => {
-				Response::with((status::Ok, format!("{}", STREAM_FILE_COUNTER.read().unwrap().0)))
-			}
-			code => {
-				let code: usize = if let Ok(code) = code.parse() { code } else {
-					return Ok(redir_to_newest_mp4());
-				};
-
-				while {
-					let current_counter = STREAM_FILE_COUNTER.read().unwrap().0;
-					current_counter < 1 || current_counter < code && code - current_counter <= 2
-				} {
-					thread::sleep(Duration::from_millis(150));
-				}
-
-				let path = format!("{}/{}", STREAM_TMP_DIR, code);
-				if let Ok(mut file) = File::open(&path) {
-					let mut buffer = vec![];
-					let _ = file.read_to_end(&mut buffer);
-					let mut response = Response::with((status::Ok, buffer));
-					response.headers.set(headers::CacheControl(vec![headers::CacheDirective::Public, headers::CacheDirective::MaxAge(60)]));
-					response.headers.set(headers::ContentType("video/mp4".parse().unwrap()));
-
-					response
-				} else {
-					redir_to_newest_mp4()
-				}
-			}
-		}));
-		iron.threads = 2usize;
-		iron.http("0.0.0.0:3128").unwrap();
-	});
+		}
+	}));
+	iron.threads = 8usize;
+	iron.http("0.0.0.0:3128").unwrap();
 
 	let mut ffmpeg = FFMpeg::spawn();
 	loop {
@@ -171,7 +169,7 @@ fn new_unit_event(mut frame: Vec<u8>, ffmpeg: &mut FFMpeg, pic_param: &mut Vec<u
 					handle.write(seq_param);
 
 					swap(ffmpeg, &mut handle);
-					thread::spawn(move || {
+					let _ = thread::Builder::new().name("ffmpeg handle".to_string()).spawn(move || {
 						let mut counter = STREAM_FILE_COUNTER.write().unwrap().0;
 						counter += 1;
 						handle.process();
