@@ -7,6 +7,7 @@ extern crate serde_derive;
 
 extern crate env_logger;
 
+use config::Config;
 // use std::env;
 use std::fs::{self};
 use std::mem::swap;
@@ -22,12 +23,12 @@ mod http;
 mod streams;
 
 const STREAM_TMP_DIR: &'static str = "/tmp/raspivid-stream";
-const FRAMERATE: usize = 20;
 
 struct Singleton<T>(T);
 
 lazy_static! {
 	static ref STREAM_FILE_COUNTER: RwLock<Singleton<usize>> = RwLock::new(Singleton(0));
+	static ref CONFIG: RwLock<Config> = RwLock::new(Config::load());
 }
 
 fn main() {
@@ -38,18 +39,21 @@ fn main() {
 
 	let mut ffmpeg = FFMpeg::spawn();
 	loop {
-		let mut child = if let Ok(child) = Command::new("raspivid")
-			.args(vec!["-o", "-"]) // Output to STDOUT
-			.args(vec!["-t", "7200000"]) // Stay on for a 2 hours instead of quickly exiting
-			.args(vec!["-rot", "90"]) // Rotate 90 degrees as the device is sitting sideways.
-			.args(vec!["-w", "1280"]) // Width
-			.args(vec!["-h", "720"]) // Height
-			.args(vec!["-fps", &format!("{}", FRAMERATE)]) // Framerate
+		let mut child = {
+			let raspivid_cfg = &CONFIG.read().unwrap().raspivid;
+			if let Ok(child) = Command::new("raspivid")
+				.args(vec!["-o", "-"]) // Output to STDOUT
+				.args(vec!["-t", "7200000"]) // Stay on for a 2 hours instead of quickly exiting
+				.args(vec!["-rot", &format!("{}", raspivid_cfg.rotation)]) // Rotate 90 degrees as the device is sitting sideways.
+				.args(vec!["-w", &format!("{}", raspivid_cfg.width)]) // Width
+				.args(vec!["-h", &format!("{}", raspivid_cfg.height)]) // Height
+				.args(vec!["-fps", &format!("{}", raspivid_cfg.framerate)]) // Framerate
 //			.args(vec!["-a", "4"]) // Output time
 //			.args(vec!["-a", &format!("Device: {} | %F %X %Z", env::var("HOSTNAME").unwrap_or("unknown".to_string()))]) // Supplementary argument hmm rn it requires an additional `export` command
-			.stdin(process::Stdio::null())
-			.stdout(process::Stdio::piped())
-			.spawn() { child } else { panic!("Failed to spawn raspivid process."); };
+				.stdin(process::Stdio::null())
+				.stdout(process::Stdio::piped())
+				.spawn() { child } else { panic!("Failed to spawn raspivid process."); }
+		};
 		info!("Loading raspivid instance...");
 
 		thread::sleep(Duration::from_secs(1));
