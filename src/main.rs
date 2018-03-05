@@ -28,7 +28,7 @@ fn main() {
 	env_logger::init();
 	clean_tmp_dir();
 
-	thread::Builder::new().name("iron handle".to_string()).spawn(|| {
+	let _ = thread::Builder::new().name("iron handle".to_string()).spawn(|| {
 		let mut iron = Iron::new(|req: &mut Request| Ok(match req.url.path().pop().unwrap_or("") {
 			"" => {
 				// Serve the script with html
