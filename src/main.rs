@@ -215,13 +215,33 @@ fn redir_to_newest_mp4() -> Response {
 	response
 }
 
+trait StreamProcessor {
+	fn spawn() -> Self;
+	fn write(&mut self, buf: &mut Vec<u8>);
+	fn process(&mut self);
+}
+
+/// Literally does nothing but be a phantom class
+struct Null;
+
+impl StreamProcessor for Null {
+	fn spawn() -> Self {
+		Null {}
+	}
+
+	fn write(&mut self, buf: &mut Vec<u8>) {}
+
+	fn process(&mut self) {}
+}
+
+/// Handle the stream and convert to mp4 for FFMpeg
 struct FFMpeg {
 	pub process: Child,
 	pub nal_units: usize,
 }
 
-impl FFMpeg {
-	pub fn spawn() -> Self {
+impl StreamProcessor for FFMpeg {
+	fn spawn() -> Self {
 		let process = Command::new("ffmpeg")
 			.args(vec!["-loglevel", "quiet"]) // Don't output any crap that is not the actual output of the stream
 			.args(vec!["-i", "-"]) // Bind to STDIN
@@ -245,7 +265,7 @@ impl FFMpeg {
 		return ffmpeg;
 	}
 
-	pub fn write(&mut self, buf: &mut Vec<u8>) {
+	fn write(&mut self, buf: &mut Vec<u8>) {
 		let mut stdin = self.process.stdin.take().expect("Failed to open STDIN of FFMpeg");
 
 		let _ = stdin.write_all(&mut buf[..]);
@@ -258,7 +278,7 @@ impl FFMpeg {
 		self.nal_units += 1;
 	}
 
-	pub fn process(&mut self) {
+	fn process(&mut self) {
 		{ let _ = self.process.stdin.take(); }
 		let _ = self.process.wait();
 	}
