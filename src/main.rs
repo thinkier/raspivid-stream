@@ -1,6 +1,5 @@
 #[macro_use]
 extern crate lazy_static;
-extern crate base64;
 extern crate env_logger;
 extern crate iron;
 
@@ -81,17 +80,11 @@ fn main() {
 				if let Ok(mut file) = File::open(&path) {
 					let mut buffer = vec![];
 					let _ = file.read_to_end(&mut buffer);
-					if req.url.query() == Some("data_url") {
-						let mut response = Response::with((status::Ok, base64::encode(&buffer)));
+					let mut response = Response::with((status::Ok, buffer));
+					response.headers.set(headers::CacheControl(vec![headers::CacheDirective::Public, headers::CacheDirective::MaxAge(60)]));
+					response.headers.set(headers::ContentType("video/mp4".parse().unwrap()));
 
-						response
-					} else {
-						let mut response = Response::with((status::Ok, buffer));
-						response.headers.set(headers::CacheControl(vec![headers::CacheDirective::Public, headers::CacheDirective::MaxAge(60)]));
-						response.headers.set(headers::ContentType("video/mp4".parse().unwrap()));
-
-						response
-					}
+					response
 				} else {
 					redir_to_newest_mp4()
 				}
