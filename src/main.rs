@@ -2,6 +2,9 @@
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
+#[macro_use]
+extern crate serde_derive;
+
 extern crate env_logger;
 
 // use std::env;
@@ -10,8 +13,10 @@ use std::mem::swap;
 use std::process::{self, Command};
 use std::sync::RwLock;
 use std::thread;
+use std::time::Duration;
 use streams::*;
 
+mod config;
 mod h264;
 mod http;
 mod streams;
@@ -45,8 +50,19 @@ fn main() {
 			.stdin(process::Stdio::null())
 			.stdout(process::Stdio::piped())
 			.spawn() { child } else { panic!("Failed to spawn raspivid process."); };
-		info!("Loaded raspivid instance.");
+		info!("Loading raspivid instance...");
 
+		thread::sleep(Duration::from_secs(1));
+		if let Ok(Some(code)) = child.try_wait() {
+			if let Some(code) = code.code() {
+				error!("Raspivid exited with code: {}", code);
+			} else {
+				error!("Raspivid has been killed externally.");
+			}
+			process::exit(1);
+		}
+
+		info!("Loaded raspivid instance.");
 		let mut child_stdout = child.stdout.take().unwrap_or_else(|| {
 			let _ = child.kill();
 			panic!("Failed to attach to raspivid's STDOUT")
