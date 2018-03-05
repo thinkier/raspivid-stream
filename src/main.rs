@@ -173,15 +173,15 @@ fn new_unit_event(mut frame: Vec<u8>, ffmpeg: &mut FFMpeg, pic_param: &mut Vec<u
 
 					swap(ffmpeg, &mut handle);
 					thread::spawn(move || {
-						let mut counter = STREAM_FILE_COUNTER.write().unwrap();
-						counter.0 += 1;
+						let mut counter = STREAM_FILE_COUNTER.write().unwrap().0;
+						counter += 1;
 						handle.process();
 
-						let path = format!("{}/{}", STREAM_TMP_DIR, counter.0);
+						let path = format!("{}/{}", STREAM_TMP_DIR, counter);
 						let _ = fs::rename(&format!("{}/stream_replace.mp4", STREAM_TMP_DIR), &path);
 
-						if counter.0 >= 4 {
-							let _ = fs::remove_file(&format!("{}/{}", STREAM_TMP_DIR, counter.0 - 4)); // Delete old
+						if counter >= 4 {
+							let _ = fs::remove_file(&format!("{}/{}", STREAM_TMP_DIR, counter - 4)); // Delete old
 						}
 					});
 				}
