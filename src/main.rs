@@ -174,8 +174,11 @@ fn new_unit_event(mut frame: Vec<u8>, ffmpeg: &mut FFMpeg, pic_param: &mut Vec<u
 
 					swap(ffmpeg, &mut handle);
 					let _ = thread::Builder::new().name("ffmpeg handle".to_string()).spawn(move || {
-						let mut counter = STREAM_FILE_COUNTER.write().unwrap().0;
-						counter += 1;
+						let counter = {
+							let mut ptr = STREAM_FILE_COUNTER.write().unwrap();
+							ptr.0 += 1;
+							ptr.0
+						};
 						handle.process();
 
 						let path = format!("{}/{}", STREAM_TMP_DIR, counter);
