@@ -165,7 +165,7 @@ fn new_unit_event(mut frame: Vec<u8>, ffmpeg: &mut FFMpeg, pic_param: &mut Vec<u
 		match unit_type {
 			5 => {
 				// Minimum 4 seconds buffer
-				if ffmpeg.nal_units > FRAMERATE * 4 {
+				if ffmpeg.is_saturated() {
 					let mut handle = FFMpeg::spawn();
 
 					handle.write(pic_param);
@@ -216,6 +216,7 @@ trait StreamProcessor {
 	fn spawn() -> Self;
 	fn write(&mut self, buf: &mut Vec<u8>);
 	fn process(&mut self);
+	fn is_saturated(&self) -> bool;
 }
 
 /// Literally does nothing but be a phantom class
@@ -229,12 +230,16 @@ impl StreamProcessor for Null {
 	fn write(&mut self, _buf: &mut Vec<u8>) {}
 
 	fn process(&mut self) {}
+
+	fn is_saturated(&self) -> bool {
+		true
+	}
 }
 
 /// Handle the stream and convert to mp4 for FFMpeg
 struct FFMpeg {
 	pub process: Child,
-	pub nal_units: usize,
+	nal_units: usize,
 }
 
 impl StreamProcessor for FFMpeg {
@@ -270,6 +275,10 @@ impl StreamProcessor for FFMpeg {
 	fn process(&mut self) {
 		{ let _ = self.process.stdin.take(); }
 		let _ = self.process.wait();
+	}
+
+	fn is_saturated(&self) -> bool {
+		self.nal_units > FRAMERATE * 4
 	}
 }
 
