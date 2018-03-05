@@ -71,7 +71,7 @@ fn main() {
 
 				while {
 					let current_counter = STREAM_FILE_COUNTER.read().unwrap().0;
-					current_counter < code && code - current_counter <= 2
+					current_counter == 0 || current_counter < code && code - current_counter <= 2
 				} {
 					thread::sleep(Duration::from_millis(150));
 				}
