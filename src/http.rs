@@ -71,7 +71,7 @@ pub fn init_iron() {
 			}
 		}));
 		iron.threads = 8usize;
-		let _ = iron.http(addr);
+		let _ = iron.http(addr).unwrap_or_else(|err| panic!("failed to start iron: {:?}", err));
 	});
 }
 
