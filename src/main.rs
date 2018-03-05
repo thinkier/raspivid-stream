@@ -31,7 +31,6 @@ fn main() {
 	clean_tmp_dir();
 
 	let _ = thread::Builder::new().name("iron serv".to_string()).spawn(|| {
-		thread::sleep(Duration::from_secs(5));
 		info!("Starting iron and serving video over HTTP.");
 
 		let mut iron = Iron::new(|req: &mut Request| Ok(match req.url.path().pop().unwrap_or("") {
@@ -261,7 +260,6 @@ impl StreamProcessor for FFMpeg {
 			.spawn()
 			.expect("Failed to spawn ffmpeg process.");
 
-		info!("Loaded ffmpeg instance.");
 		FFMpeg { process, nal_units: 0 }
 	}
 
