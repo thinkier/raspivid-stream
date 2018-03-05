@@ -1,8 +1,8 @@
 extern crate serde;
 extern crate toml;
 
-use std::fs::File;
-use std::io::Read;
+use std::fs::*;
+use std::io::{Read, Write};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
@@ -28,14 +28,26 @@ impl Config {
 			file.read_to_string(&mut str).unwrap_or_else(|err| panic!("failed to read from config.toml: {:?}", err));
 			toml::from_str(&str).unwrap_or_else(|err| panic!("failed to deserialize config.toml: {:?}", err))
 		} else {
-			Config::default()
+			let config = Config::default();
+
+			let config_str = toml::to_string(&config).unwrap();
+			OpenOptions::new()
+				.read(false)
+				.write(true)
+				.create(true)
+				.open("config.toml")
+				.unwrap_or_else(|err| panic!("failed to open config file for writing: {:?}", err))
+				.write_all(config_str.as_bytes())
+				.unwrap_or_else(|err| panic!("failed to write standard config to config.toml: {:?}", err));
+
+			config
 		}
 	}
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct HttpConfig {
-	#[serde(default)]
+	#[serde(default = "default_bind_addr")]
 	pub bind_addr: String
 }
 
@@ -49,13 +61,13 @@ impl Default for HttpConfig {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct RaspividConfig {
-	#[serde(default)]
+	#[serde(default = "default_width")]
 	pub width: u16,
-	#[serde(default)]
+	#[serde(default = "default_height")]
 	pub height: u16,
-	#[serde(default)]
+	#[serde(default = "default_framerate")]
 	pub framerate: u8,
-	#[serde(default)]
+	#[serde(default = "default_rotation")]
 	pub rotation: u16,
 }
 
@@ -68,4 +80,24 @@ impl Default for RaspividConfig {
 			rotation: 0,
 		}
 	}
+}
+
+fn default_bind_addr() -> String {
+	HttpConfig::default().bind_addr
+}
+
+fn default_width() -> u16 {
+	RaspividConfig::default().width
+}
+
+fn default_height() -> u16 {
+	RaspividConfig::default().height
+}
+
+fn default_framerate() -> u8 {
+	RaspividConfig::default().framerate
+}
+
+fn default_rotation() -> u16 {
+	RaspividConfig::default().rotation
 }
