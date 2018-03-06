@@ -20,7 +20,7 @@ pub fn init_iron() {
 				let num = STREAM_FILE_COUNTER.read().unwrap().0;
 				let mut response = Response::with((status::Ok, format!(r#"<!doctype html><html><body><center><video id='streamer' autoplay src='/{}'/ style='width:100%;height:auto;'></video></center><script type='text/javascript'>
 				register(document.getElementById('streamer'), {});
-				{}</script></body></html>"#, num, num + 1, r#"
+				{}</script></body></html>"#, num - 1, num, r#"
 				function register(streamer, num){
 					streamer.onended = function() {
 						var newStreamer = document.createElement('video');
