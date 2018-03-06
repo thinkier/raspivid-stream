@@ -1,0 +1,8 @@
+[http]
+bind_addr = "0.0.0.0:3128"
+
+[raspivid]
+width = 1280
+height = 720
+framerate = 20
+rotation = 0
