@@ -18,27 +18,7 @@ pub fn init_iron() {
 			"" => {
 				// Serve the script with html
 				let num = STREAM_FILE_COUNTER.read().unwrap().0;
-				let mut response = Response::with((status::Ok, format!(r#"<!doctype html><html><body><center><video id='streamer' autoplay src='/{}'/ style='width:100%;height:auto;'></video></center><script type='text/javascript'>
-				register(document.getElementById('streamer'), {});
-				{}</script></body></html>"#, num - 1, num, r#"
-				function register(streamer, num){
-					streamer.onended = function() {
-						var newStreamer = document.createElement('video');
-						streamer.parentNode.appendChild(newStreamer);
-						newStreamer.id = 'streamer' + num;
-						newStreamer.autoplay = true;
-						newStreamer.src = '/' + num;
-						newStreamer.style = 'width:100%;height:auto;display:none;';
-						document.body.style = 'background-color: red;';
-						newStreamer.onplay = function() {
-							document.body.style = 'background-color: green;';
-							streamer.parentNode.removeChild(streamer);
-							newStreamer.style.display = 'inline';
-							register(newStreamer, num + 1);
-						};
-					}
-				}
-				"#)));
+				let mut response = Response::with((status::Ok, include_str!("index.html")));
 				response.headers.set(headers::ContentType::html());
 
 				response
