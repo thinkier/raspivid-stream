@@ -1,65 +1,20 @@
-extern crate iron;
+use rocket::response::Stream;
+use std::io;
 
-use self::iron::{headers, status};
-use self::iron::prelude::*;
-use std::fs::File;
-use std::io::Read;
-use std::net::SocketAddr;
-use std::thread;
-use std::time::Duration;
-use super::{CONFIG, STREAM_FILE_COUNTER, STREAM_TMP_DIR};
-
-pub fn init_iron() {
-	let _ = thread::Builder::new().name("iron serv".to_string()).spawn(|| {
-		let addr: SocketAddr = CONFIG.read().unwrap().http.bind_addr.parse().expect("invalid bind address");
-		info!("Starting iron and serving video over HTTP.");
-
-		let mut iron = Iron::new(|req: &mut Request| Ok(match req.url.path().pop().unwrap_or("") {
-			"" => {
-				// Serve the script with html
-				let num = STREAM_FILE_COUNTER.read().unwrap().0;
-				let mut response = Response::with((status::Ok, include_str!("index.html")));
-				response.headers.set(headers::ContentType::html());
-
-				response
-			}
-			"current_code" => {
-				Response::with((status::Ok, format!("{}", STREAM_FILE_COUNTER.read().unwrap().0)))
-			}
-			code => {
-				let code: usize = if let Ok(code) = code.parse() { code } else {
-					return Ok(redir_to_newest_mp4());
-				};
-
-				while {
-					let current_counter = STREAM_FILE_COUNTER.read().unwrap().0;
-					current_counter == 0 || current_counter < code && code - current_counter <= 2
-				} {
-					thread::sleep(Duration::from_millis(150));
-				}
-
-				let path = format!("{}/{}", STREAM_TMP_DIR, code);
-				if let Ok(mut file) = File::open(&path) {
-					let mut buffer = vec![];
-					let _ = file.read_to_end(&mut buffer);
-					let mut response = Response::with((status::Ok, buffer));
-					response.headers.set(headers::CacheControl(vec![headers::CacheDirective::Public, headers::CacheDirective::MaxAge(60)]));
-					response.headers.set(headers::ContentType("video/mp4".parse().unwrap()));
-
-					response
-				} else {
-					redir_to_newest_mp4()
-				}
-			}
-		}));
-		iron.threads = 8usize;
-		let _ = iron.http(addr).unwrap_or_else(|err| panic!("failed to start iron: {:?}", err));
-	});
+#[get("/")]
+fn index() -> &'static str {
+	include_str!("index.html")
 }
 
-fn redir_to_newest_mp4() -> Response {
-	let mut response = Response::with(status::TemporaryRedirect);
-	response.headers.set(headers::Location(format!("/{}", STREAM_FILE_COUNTER.read().unwrap().0)));
+#[get("/stream.mp4")]
+fn stream() -> Stream<Mock> {
+	unimplemented!()
+}
 
-	response
+struct Mock;
+
+impl io::Read for Mock {
+	fn read(&mut self, _buf: &mut [u8]) -> io::Result<usize> {
+		unimplemented!()
+	}
 }

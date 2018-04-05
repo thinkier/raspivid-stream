@@ -5,30 +5,30 @@ use std::fs::*;
 use std::io::{Read, Write};
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Config {
+pub struct StreamConfig {
 	#[serde(default)]
 	pub http: HttpConfig,
 	#[serde(default)]
 	pub raspivid: RaspividConfig,
 }
 
-impl Default for Config {
+impl Default for StreamConfig {
 	fn default() -> Self {
-		Config {
+		StreamConfig {
 			http: HttpConfig::default(),
 			raspivid: RaspividConfig::default(),
 		}
 	}
 }
 
-impl Config {
-	pub fn load() -> Config {
+impl StreamConfig {
+	pub fn load() -> StreamConfig {
 		if let Ok(mut file) = File::open("config.toml") {
 			let mut str = String::new();
 			file.read_to_string(&mut str).unwrap_or_else(|err| panic!("failed to read from config.toml: {:?}", err));
 			toml::from_str(&str).unwrap_or_else(|err| panic!("failed to deserialize config.toml: {:?}", err))
 		} else {
-			let config = Config::default();
+			let config = StreamConfig::default();
 
 			let config_str = toml::to_string(&config).unwrap();
 			OpenOptions::new()

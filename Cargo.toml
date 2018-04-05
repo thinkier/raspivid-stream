@@ -5,9 +5,10 @@ authors = ["ConcurrentMarxistGC <concurrentmarxistgc@users.noreply.github.com>"]
 
 [dependencies]
 lazy_static="*"
-iron="0.6"
 log="0.3"
 env_logger="*"
 serde="*"
 serde_derive="*"
 toml="0.4"
+rocket = "^0.3.7"
+rocket_codegen = "^0.3.7"
