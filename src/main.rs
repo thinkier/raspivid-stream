@@ -17,6 +17,9 @@ use std::sync::RwLock;
 
 mod config;
 mod http;
+mod ptr;
+mod h264_input;
+mod mp4_containerizer;
 
 const STREAM_TMP_DIR: &'static str = "/tmp/raspivid-stream";
 
@@ -24,15 +27,12 @@ lazy_static! {
 	static ref CONFIG: RwLock<StreamConfig> = RwLock::new(StreamConfig::load());
 }
 
-fn clean_tmp_dir() {
+fn reinit_tmp_dir() {
 	let _ = fs::remove_dir_all(STREAM_TMP_DIR);
 	let _ = fs::create_dir(STREAM_TMP_DIR);
 }
 
-fn main() {
-	env_logger::init();
-	{ info!("Config: {:?}", CONFIG.read().unwrap()); }
-
+fn start_rocket() {
 	let config = Config::build(Environment::Production)
 		.address("0.0.0.0")
 		.port(80)
@@ -41,4 +41,12 @@ fn main() {
 	rocket::custom(config, true)
 		.mount("/", routes![http::index, http::stream])
 		.launch();
+}
+
+fn main() {
+	env_logger::init();
+	{ info!("Config: {:?}", CONFIG.read().unwrap()); }
+	reinit_tmp_dir();
+
+	start_rocket();
 }
