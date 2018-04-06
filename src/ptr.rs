@@ -1,5 +1,5 @@
 use std::io::Read;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 
 pub trait ParentTerminator {
 	fn terminate(&mut self);
@@ -27,5 +27,11 @@ impl<P: ParentTerminator, R: Read> Deref for ParentedRead<P, R> {
 
 	fn deref(&self) -> &<Self as Deref>::Target {
 		&self.stream
+	}
+}
+
+impl<P: ParentTerminator, R: Read> DerefMut for ParentedRead<P, R> {
+	fn deref_mut(&mut self) -> &mut <Self as Deref>::Target {
+		&mut self.stream
 	}
 }
